@@ -1,0 +1,41 @@
+{
+  "cities": {
+    "Delhi":      {"lat": 28.61, "lon": 77.21},
+    "Gurugram":   {"lat": 28.46, "lon": 77.03},
+    "Faridabad":  {"lat": 28.41, "lon": 77.31},
+    "Meerut":     {"lat": 28.98, "lon": 77.71},
+    "Panipat":    {"lat": 29.39, "lon": 76.97},
+    "Chandigarh": {"lat": 30.73, "lon": 76.78},
+    "Alwar":      {"lat": 27.55, "lon": 76.60},
+    "Jaipur":     {"lat": 26.91, "lon": 75.79},
+    "Ajmer":      {"lat": 26.45, "lon": 74.64},
+    "Kota":       {"lat": 25.21, "lon": 75.86},
+    "Mathura":    {"lat": 27.49, "lon": 77.67},
+    "Bharatpur":  {"lat": 27.22, "lon": 77.49},
+    "Agra":       {"lat": 27.18, "lon": 78.01},
+    "Gwalior":    {"lat": 26.22, "lon": 78.18}
+  },
+  "roads": [
+    ["Delhi", "Gurugram", 32],
+    ["Delhi", "Faridabad", 30],
+    ["Delhi", "Meerut", 70],
+    ["Delhi", "Panipat", 90],
+    ["Panipat", "Chandigarh", 175],
+    ["Panipat", "Meerut", 140],
+    ["Gurugram", "Alwar", 150],
+    ["Faridabad", "Mathura", 115],
+    ["Faridabad", "Agra", 200],
+    ["Mathura", "Agra", 58],
+    ["Mathura", "Bharatpur", 50],
+    ["Bharatpur", "Agra", 60],
+    ["Alwar", "Bharatpur", 110],
+    ["Alwar", "Jaipur", 150],
+    ["Bharatpur", "Jaipur", 190],
+    ["Agra", "Jaipur", 240],
+    ["Agra", "Gwalior", 120],
+    ["Jaipur", "Ajmer", 140],
+    ["Jaipur", "Kota", 250],
+    ["Ajmer", "Kota", 210],
+    ["Gwalior", "Kota", 340]
+  ]
+}
