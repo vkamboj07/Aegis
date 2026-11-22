@@ -41,3 +41,19 @@ in plain English (beta, the future prompt bar), `Esc` quit.
 
 See `DEMO_SCRIPT.md` for the presentation walkthrough and `AEGIS_IMPLEMENTATION_PLAN.md`
 (one level up) for the module plan and status.
+
+## Project Goal
+The goal of AEGIS is to demonstrate how classical AI techniques can be combined to create an adaptive, multi-agent emergency response system capable of making decisions and responding to changing environmental conditions.
+
+## Technology Stack
+- Python
+- Pygame CE
+- NetworkX
+- Matplotlib
+- JSON
+- Git & GitHub
+
+## Team
+- Aryan Bhutani – 240406
+- Vaibhav Kamboj – 240678
+- Samaira – 240628
