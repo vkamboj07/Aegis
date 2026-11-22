@@ -24,6 +24,13 @@ SPEEDS = [0.25, 0.5, 1, 2, 4, 8]
 INCIDENT_TYPES = ["Fire", "Accident", "Medical"]
 DEMO = "showcase"
 HIGHLIGHT_MS = 5000             # a road / vehicle picked in the panel stays highlighted this long
+TOAST_MS = 4000                 # on-map notification lifetime
+TOAST_EVENTS = {"resolved": GREEN, "repaired": GREEN, "breakdown": RED, "random_event": RED,
+                "replan": ACCENT, "rule": AMBER, "escalation": AMBER}
+HELP = [("Space", "pause / resume"), ("+ / -", "speed"), ("Enter", "report now"),
+        ("Tab", "select next vehicle"), ("C", "close / reopen selected road"),
+        ("B", "break down selected vehicle"), ("R", "reset"), ("D", "run demo"),
+        ("T", "type a scenario (beta)"), ("H", "show or hide this help"), ("Esc", "quit")]
 
 
 class App:
@@ -38,6 +45,7 @@ class App:
         self.speed_i, self.paused, self.random_on = 1, False, False
         self.batch, self.typing, self.buffer = [], False, ""
         self.touched = {"road": -HIGHLIGHT_MS, "vehicle": -HIGHLIGHT_MS}
+        self.toasts, self.help_on, self._seen = [], False, 0
         self.reset()
         self._build_widgets()
 
@@ -55,6 +63,7 @@ class App:
             road.closed = False
         self.sim = Simulation(self.graph)
         self.sim.random_events = self.random_on
+        self._seen, self.toasts = 0, []
 
     @property
     def speed(self):
@@ -138,6 +147,16 @@ class App:
     def toggle_pause(self):
         self.paused = not self.paused
 
+    def toggle_help(self):
+        self.help_on = not self.help_on
+
+    def cycle_vehicle(self):
+        """Tab: select the next vehicle in the fleet (and highlight it on the map)."""
+        names = [v.name for v in self.sim.fleet]
+        current = names.index(self.vehicle.value) if self.vehicle.value in names else -1
+        self.vehicle.set(names[(current + 1) % len(names)])
+        self.touch("vehicle")
+
     def change_speed(self, d):
         self.speed_i = max(0, min(len(SPEEDS) - 1, self.speed_i + d))
 
@@ -188,8 +207,13 @@ class App:
         keys = {pygame.K_SPACE: self.toggle_pause, pygame.K_r: self.reset, pygame.K_d: self.start_demo,
                 pygame.K_RETURN: self.report_now, pygame.K_EQUALS: lambda: self.change_speed(1),
                 pygame.K_PLUS: lambda: self.change_speed(1), pygame.K_KP_PLUS: lambda: self.change_speed(1),
-                pygame.K_MINUS: lambda: self.change_speed(-1), pygame.K_KP_MINUS: lambda: self.change_speed(-1)}
+                pygame.K_MINUS: lambda: self.change_speed(-1), pygame.K_KP_MINUS: lambda: self.change_speed(-1),
+                pygame.K_h: self.toggle_help, pygame.K_TAB: self.cycle_vehicle,
+                pygame.K_c: self.toggle_road, pygame.K_b: self.break_down}
         if event.key == pygame.K_ESCAPE:
+            if self.help_on:            # Esc closes the help first, then quits
+                self.help_on = False
+                return True
             return False
         if event.key == pygame.K_t:
             self.typing = True
@@ -227,8 +251,91 @@ class App:
         self.map.draw(s, self.sim, self)
         if self.typing:
             self._draw_prompt(s)
+        elif not self.help_on:
+            self._draw_hover(s)
+        self._update_toasts()
+        self._draw_toasts(s)
+        if self.help_on:
+            self._draw_help(s)
         s.set_clip(None)
         self._draw_panel(s)
+
+    # ---- map feedback: hover details, notifications, help --------------
+    def _update_toasts(self):
+        now = pygame.time.get_ticks()
+        for rec in self.sim.records[self._seen:]:
+            if rec["event"] in TOAST_EVENTS:
+                self.toasts.append((rec.get("detail", rec["event"]), now + TOAST_MS,
+                                    TOAST_EVENTS[rec["event"]]))
+        self._seen = len(self.sim.records)
+        self.toasts = [t for t in self.toasts if t[1] > now][-4:]
+
+    def _draw_toasts(self, s):
+        for i, (text, _, color) in enumerate(self.toasts):
+            text = text if len(text) <= 80 else text[:77] + "..."
+            label = self.f["small_bold"].render(text, True, TEXT)
+            box = pygame.Rect(0, 0, label.get_width() + 24, 26)
+            box.topright = (MAP_W - 12, 64 + i * 32)      # below the compass, clear of the race card
+            pygame.draw.rect(s, PANEL_BG, box, border_radius=6)
+            pygame.draw.rect(s, color, box, 2, border_radius=6)
+            s.blit(label, label.get_rect(center=box.center))
+
+    def _tooltip_lines(self, kind, obj):
+        if kind == "vehicle":
+            v = obj
+            lines = [v.name, self._status(v)[0],
+                     f"algorithm: {v.algorithm}" if v.algorithm else "no route yet"]
+            if v.incident:
+                lines.append(f"incident #{v.incident}")
+            return lines
+        if kind == "city":
+            city = obj
+            tags = sorted(t.replace("_", " ") for t in self.graph.tags.get(city, ()))
+            lines = [city + (" (base)" if city == self.sim.depot else ""),
+                     "facilities: " + (", ".join(tags) or "none")]
+            here = [i for i in self.sim.open_incidents() if i.location == city]
+            for inc in here[:3]:
+                lines.append(f"{inc.type} #{inc.id}: S{inc.severity}, {inc.people_affected} ppl, {inc.status}")
+            if not here:
+                lines.append("no open incidents")
+            return lines
+        r = obj
+        return [f"{r.a} - {r.b}", f"{r.distance:g} km, {'CLOSED' if r.closed else 'open'}",
+                "click to select, right-click to close / reopen"]
+
+    def _draw_hover(self, s):
+        mx, my = pygame.mouse.get_pos()
+        if mx >= MAP_W:
+            return
+        hit = self.map.hover_target((mx, my), self.sim)
+        if not hit:
+            s.blit(self.f["tiny"].render("Hover for details  -  H for shortcuts", True, DIM), (14, H - 20))
+            return
+        lines = self._tooltip_lines(*hit)
+        font = self.f["small"]
+        w = max(font.size(line)[0] for line in lines) + 16
+        h = len(lines) * 18 + 10
+        x = min(mx + 14, MAP_W - w - 6)
+        y = min(my + 14, H - h - 6)
+        box = pygame.Rect(x, y, w, h)
+        pygame.draw.rect(s, PANEL_BG, box, border_radius=6)
+        pygame.draw.rect(s, ACCENT, box, 1, border_radius=6)
+        for k, line in enumerate(lines):
+            s.blit(font.render(line, True, TEXT if k == 0 else DIM), (x + 8, y + 5 + k * 18))
+
+    def _draw_help(self, s):
+        panel = pygame.Surface((MAP_W, H), pygame.SRCALPHA)
+        panel.fill((10, 13, 18, 200))
+        s.blit(panel, (0, 0))
+        box = pygame.Rect(0, 0, 420, 62 + 26 * len(HELP))
+        box.center = (MAP_W // 2, H // 2)
+        pygame.draw.rect(s, PANEL_BG, box, border_radius=10)
+        pygame.draw.rect(s, ACCENT, box, 2, border_radius=10)
+        s.blit(self.f["title"].render("Keyboard shortcuts", True, TEXT), (box.x + 20, box.y + 14))
+        for k, (key, text) in enumerate(HELP):
+            y = box.y + 50 + k * 26
+            s.blit(self.f["small_bold"].render(key, True, ACCENT), (box.x + 24, y))
+            s.blit(self.f["small"].render(text, True, TEXT), (box.x + 130, y))
 
     @property
     def location(self):

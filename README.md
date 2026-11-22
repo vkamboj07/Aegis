@@ -11,6 +11,8 @@ python main.py                         # control centre (map + control panel)
 python main.py --compare Delhi Kota    # algorithm comparison for one route
 python main.py --analyze               # scenarios + benchmark -> results/ (CSVs, charts)
 python main.py --parse "Fire in Jaipur, 200 people affected. At 2 hours the Jaipur-Ajmer road closes."
+python main.py --explain Fire Panipat 150   # which knowledge rules fire, with the proof
+python main.py --fairness                   # response time per city (responsible-AI check)
 python -m unittest discover -s tests   # tests
 ```
 

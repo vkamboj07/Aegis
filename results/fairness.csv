@@ -1,0 +1,15 @@
+city,distance_km,response_h,ratio_to_median,flagged
+Kota,582.0,9.7,3.08,True
+Ajmer,472.0,7.9,2.51,True
+Jaipur,332.0,5.55,1.76,True
+Gwalior,323.0,5.4,1.71,True
+Chandigarh,265.0,4.45,1.41,False
+Agra,203.0,3.4,1.08,False
+Bharatpur,195.0,3.25,1.03,False
+Alwar,182.0,3.05,0.97,False
+Mathura,145.0,2.45,0.78,False
+Panipat,90.0,1.5,0.48,False
+Meerut,70.0,1.2,0.38,False
+Gurugram,32.0,0.55,0.17,False
+Faridabad,30.0,0.5,0.16,False
+Delhi,0.0,0.0,0.0,False

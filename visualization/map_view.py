@@ -100,6 +100,27 @@ class MapView:
                 best, best_d = r, d
         return best
 
+    def vehicle_at(self, p, sim):
+        for i, v in enumerate(sim.fleet):
+            x, y, _ = self.vehicle_pose(i, v, sim)
+            if abs(p[0] - x) < 15 and abs(p[1] - y) < 11:
+                return v
+        return None
+
+    def hover_target(self, p, sim):
+        """What is under the pointer: ("vehicle", v), ("city", name), ("road", road) or None.
+        Vehicles win over cities, and cities over roads, as they are drawn on top."""
+        v = self.vehicle_at(p, sim)
+        if v:
+            return "vehicle", v
+        node = self.node_at(p)
+        if node:
+            return "city", node
+        road = self.road_at(p)
+        if road:
+            return "road", road
+        return None
+
     def point_on(self, path, km):
         """(x, y, heading degrees) km along a path of city names."""
         for a, b in zip(path, path[1:]):

@@ -45,6 +45,39 @@ def analyze():
         print("wrote", c)
 
 
+def fairness():
+    """Response time per city for one standard incident, compared with distance from base."""
+    from simulation.fairness import FIELDS, fairness_rows, summary
+    from simulation.recorder import RESULTS_DIR, save_csv
+    rows = fairness_rows()
+    save_csv(rows, RESULTS_DIR / "fairness.csv", FIELDS)
+    print(f"{'City':<13}{'Km':>6}{'Hours':>8}{'x median':>10}  flag")
+    for r in rows:
+        flag = "SLOW" if r["flagged"] else ""
+        print(f"{r['city']:<13}{r['distance_km']:>6.0f}{r['response_h']:>8.2f}"
+              f"{r['ratio_to_median']:>10.2f}  {flag}")
+    s = summary(rows)
+    print(f"median {s['median_h']} h, slowest {s['max_h']} h, "
+          f"distance-response correlation {s['distance_response_correlation']}")
+    print("wrote", RESULTS_DIR / "fairness.csv")
+
+
+def explain_rules(graph, kind, city, people):
+    """Why each knowledge rule would or would not fire for this incident (backward chaining)."""
+    from ai.logic import explain, incident_facts
+    if city not in graph.coords:
+        raise SystemExit(f"unknown city: {city}")
+    facts = incident_facts(kind, graph.tags[city], people)
+    print(f"facts: {', '.join(sorted(facts)) or 'none'}")
+    for name, proof in explain(facts).items():
+        if proof is None:
+            print(f"{name}: does not fire")
+        else:
+            print(f"{name}: fires")
+            for line in proof:
+                print("   ", line)
+
+
 def interpret(graph, text, use_llm):
     """Show how the prompt engine reads a scenario, as structured JSON."""
     import json
@@ -67,10 +100,19 @@ def main():
                     help="interpret a natural-language scenario and print the structured events")
     ap.add_argument("--llm", action="store_true",
                     help="allow the optional LLM fallback when the keyword parser finds nothing")
+    ap.add_argument("--fairness", action="store_true",
+                    help="response time per city for one standard incident; writes results/fairness.csv")
+    ap.add_argument("--explain", nargs=3, metavar=("TYPE", "CITY", "PEOPLE"),
+                    help="show which knowledge rules fire for an incident, with the proof, e.g. "
+                         "--explain Fire Jaipur 60")
     args = ap.parse_args()
     if args.analyze:
         return analyze()
+    if args.fairness:
+        return fairness()
     graph = CityGraph.load()
+    if args.explain:
+        return explain_rules(graph, args.explain[0], args.explain[1], int(args.explain[2]))
     if args.parse:
         interpret(graph, args.parse, args.llm)
     elif args.compare:
