@@ -1,18 +1,19 @@
 {
+  "depot": "Delhi",
   "cities": {
-    "Delhi":      {"lat": 28.61, "lon": 77.21},
+    "Delhi":      {"lat": 28.61, "lon": 77.21, "tags": ["hospital"]},
     "Gurugram":   {"lat": 28.46, "lon": 77.03},
     "Faridabad":  {"lat": 28.41, "lon": 77.31},
     "Meerut":     {"lat": 28.98, "lon": 77.71},
-    "Panipat":    {"lat": 29.39, "lon": 76.97},
-    "Chandigarh": {"lat": 30.73, "lon": 76.78},
+    "Panipat":    {"lat": 29.39, "lon": 76.97, "tags": ["fuel_depot"]},
+    "Chandigarh": {"lat": 30.73, "lon": 76.78, "tags": ["hospital"]},
     "Alwar":      {"lat": 27.55, "lon": 76.60},
-    "Jaipur":     {"lat": 26.91, "lon": 75.79},
+    "Jaipur":     {"lat": 26.91, "lon": 75.79, "tags": ["hospital", "tourist_hub"]},
     "Ajmer":      {"lat": 26.45, "lon": 74.64},
     "Kota":       {"lat": 25.21, "lon": 75.86},
-    "Mathura":    {"lat": 27.49, "lon": 77.67},
+    "Mathura":    {"lat": 27.49, "lon": 77.67, "tags": ["fuel_depot"]},
     "Bharatpur":  {"lat": 27.22, "lon": 77.49},
-    "Agra":       {"lat": 27.18, "lon": 78.01},
+    "Agra":       {"lat": 27.18, "lon": 78.01, "tags": ["tourist_hub"]},
     "Gwalior":    {"lat": 26.22, "lon": 78.18}
   },
   "roads": [

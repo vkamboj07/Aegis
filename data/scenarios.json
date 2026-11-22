@@ -1,0 +1,48 @@
+{
+  "demo_replan": {
+    "description": "Major fire in Ajmer; the Jaipur-Ajmer road closes while the fire truck is on its way, forcing a reroute via Kota.",
+    "events": [
+      {"time": 0.0, "type": "new_incident", "incident_type": "Fire", "location": "Ajmer", "severity": 5, "people": 200},
+      {"time": 2.0, "type": "road_closure", "edge": ["Jaipur", "Ajmer"]}
+    ]
+  },
+  "single_fire": {
+    "description": "One fire in Jaipur, no disruptions.",
+    "events": [
+      {"time": 0.0, "type": "new_incident", "incident_type": "Fire", "location": "Jaipur", "severity": 3, "people": 40}
+    ]
+  },
+  "multi_incident": {
+    "description": "Six incidents of mixed types over two hours; more incidents than compatible vehicles at times.",
+    "events": [
+      {"time": 0.0, "type": "new_incident", "incident_type": "Fire", "location": "Panipat", "severity": 3, "people": 30},
+      {"time": 0.0, "type": "new_incident", "incident_type": "Medical", "location": "Kota", "severity": 3, "people": 120},
+      {"time": 0.5, "type": "new_incident", "incident_type": "Accident", "location": "Agra", "severity": 3, "people": 15},
+      {"time": 1.0, "type": "new_incident", "incident_type": "Fire", "location": "Chandigarh", "severity": 4, "people": 25},
+      {"time": 1.5, "type": "new_incident", "incident_type": "Medical", "location": "Ajmer", "severity": 4, "people": 60},
+      {"time": 2.0, "type": "new_incident", "incident_type": "Accident", "location": "Meerut", "severity": 2, "people": 10}
+    ]
+  },
+  "road_closures": {
+    "description": "Incidents plus three road disruptions that force replanning.",
+    "events": [
+      {"time": 0.0, "type": "new_incident", "incident_type": "Fire", "location": "Ajmer", "severity": 5, "people": 200},
+      {"time": 0.0, "type": "new_incident", "incident_type": "Accident", "location": "Kota", "severity": 3, "people": 40},
+      {"time": 1.0, "type": "road_closure", "edge": ["Alwar", "Jaipur"]},
+      {"time": 2.0, "type": "road_closure", "edge": ["Jaipur", "Ajmer"]},
+      {"time": 3.0, "type": "new_incident", "incident_type": "Medical", "location": "Gwalior", "severity": 4, "people": 80},
+      {"time": 4.0, "type": "road_reopen", "edge": ["Jaipur", "Ajmer"]}
+    ]
+  },
+  "showcase": {
+    "description": "Three fires at once with two fire trucks (priority), a closure on the Jaipur route (replanning) and a fire truck breakdown (re-allocation).",
+    "events": [
+      {"time": 0.0, "type": "new_incident", "incident_type": "Fire", "location": "Jaipur", "severity": 4, "people": 60},
+      {"time": 0.0, "type": "new_incident", "incident_type": "Fire", "location": "Agra", "severity": 3, "people": 30},
+      {"time": 0.0, "type": "new_incident", "incident_type": "Fire", "location": "Meerut", "severity": 2, "people": 10},
+      {"time": 0.0, "type": "new_incident", "incident_type": "Medical", "location": "Kota", "severity": 3, "people": 120},
+      {"time": 1.5, "type": "road_closure", "edge": ["Alwar", "Jaipur"]},
+      {"time": 2.5, "type": "vehicle_breakdown", "vehicle": "Fire Truck 2"}
+    ]
+  }
+}

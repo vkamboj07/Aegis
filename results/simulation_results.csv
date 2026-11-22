@@ -1,0 +1,188 @@
+scenario,time_h,event,incident,incident_type,location,severity,vehicle,algorithm,distance_km,nodes_expanded,search_ms,response_h,detail
+demo_replan,0.02,incident_reported,1,Fire,Ajmer,5,,,,,,,"Fire reported in Ajmer (severity 5, 200 people)."
+demo_replan,0.02,rule,1,Fire,Ajmer,5,,,,,,,"Rule 'mass_casualty' fired on Fire #1 in Ajmer: now severity 5, 200 people."
+demo_replan,0.02,csp,,,,,,,,,,,"CSP: 1 of 1 incidents assigned (4 nodes, 0 values pruned)."
+demo_replan,0.02,dispatch,1,Fire,Ajmer,5,Fire Truck 1,A*,472.0,7,0.029,,"Fire Truck 1 sent to Fire in Ajmer: A* route, 472 km, 7 nodes expanded (others: UCS 472 km, BFS 472 km, DFS 1022 km)."
+demo_replan,0.02,route_option,1,Fire,Ajmer,5,Fire Truck 1,A*,472.0,7,0.029,,chosen
+demo_replan,0.02,route_option,1,Fire,Ajmer,5,Fire Truck 1,UCS,472.0,13,0.017,,
+demo_replan,0.02,route_option,1,Fire,Ajmer,5,Fire Truck 1,BFS,472.0,13,0.013,,
+demo_replan,0.02,route_option,1,Fire,Ajmer,5,Fire Truck 1,DFS,1022.0,9,0.013,,
+demo_replan,2.0,road_closed,,,,,,,,,,,Road Jaipur-Ajmer CLOSED.
+demo_replan,2.0,replan,1,Fire,Ajmer,5,Fire Truck 1,A*,610.0,10,0.029,,"Fire Truck 1: road ahead closed, rerouting from Alwar - REPLANNING (new route by A*)."
+demo_replan,13.24,resolved,1,Fire,Ajmer,5,Fire Truck 1,A*,,,,13.22,Fire Truck 1 reached Ajmer: Fire resolved.
+single_fire,0.02,incident_reported,2,Fire,Jaipur,3,,,,,,,"Fire reported in Jaipur (severity 3, 40 people)."
+single_fire,0.02,csp,,,,,,,,,,,"CSP: 1 of 1 incidents assigned (4 nodes, 0 values pruned)."
+single_fire,0.02,dispatch,2,Fire,Jaipur,3,Fire Truck 1,A*,332.0,5,0.02,,"Fire Truck 1 sent to Fire in Jaipur: A* route, 332 km, 5 nodes expanded (others: UCS 332 km, BFS 332 km, DFS 332 km)."
+single_fire,0.02,route_option,2,Fire,Jaipur,3,Fire Truck 1,A*,332.0,5,0.02,,chosen
+single_fire,0.02,route_option,2,Fire,Jaipur,3,Fire Truck 1,UCS,332.0,12,0.016,,
+single_fire,0.02,route_option,2,Fire,Jaipur,3,Fire Truck 1,BFS,332.0,11,0.012,,
+single_fire,0.02,route_option,2,Fire,Jaipur,3,Fire Truck 1,DFS,332.0,10,0.011,,
+single_fire,2.02,escalation,2,Fire,Jaipur,4,,,,,,,Fire #2 in Jaipur unresolved: escalated to severity 4.
+single_fire,4.02,escalation,2,Fire,Jaipur,5,,,,,,,Fire #2 in Jaipur unresolved: escalated to severity 5.
+single_fire,5.56,resolved,2,Fire,Jaipur,5,Fire Truck 1,A*,,,,5.54,Fire Truck 1 reached Jaipur: Fire resolved.
+multi_incident,0.02,incident_reported,3,Fire,Panipat,3,,,,,,,"Fire reported in Panipat (severity 3, 30 people)."
+multi_incident,0.02,incident_reported,4,Medical,Kota,3,,,,,,,"Medical reported in Kota (severity 3, 120 people)."
+multi_incident,0.02,rule,3,Fire,Panipat,5,,,,,,,"Rule 'fire_at_fuel_depot' fired on Fire #3 in Panipat: now severity 5, 30 people."
+multi_incident,0.02,rule,4,Medical,Kota,4,,,,,,,"Rule 'mass_casualty' fired on Medical #4 in Kota: now severity 4, 120 people."
+multi_incident,0.02,csp,,,,,,,,,,,"CSP: 2 of 2 incidents assigned (10 nodes, 0 values pruned)."
+multi_incident,0.02,dispatch,4,Medical,Kota,4,Ambulance 1,A*,582.0,12,0.035,,"Ambulance 1 sent to Medical in Kota: A* route, 582 km, 12 nodes expanded (others: UCS 582 km, BFS 582 km, DFS 812 km)."
+multi_incident,0.02,route_option,4,Medical,Kota,4,Ambulance 1,A*,582.0,12,0.035,,chosen
+multi_incident,0.02,route_option,4,Medical,Kota,4,Ambulance 1,UCS,582.0,14,0.016,,
+multi_incident,0.02,route_option,4,Medical,Kota,4,Ambulance 1,BFS,582.0,14,0.012,,
+multi_incident,0.02,route_option,4,Medical,Kota,4,Ambulance 1,DFS,812.0,8,0.011,,
+multi_incident,0.02,dispatch,3,Fire,Panipat,5,Fire Truck 1,A*,90.0,2,0.007,,"Fire Truck 1 sent to Fire in Panipat: A* route, 90 km, 2 nodes expanded (others: UCS 90 km, BFS 90 km, DFS 90 km)."
+multi_incident,0.02,route_option,3,Fire,Panipat,5,Fire Truck 1,A*,90.0,2,0.007,,chosen
+multi_incident,0.02,route_option,3,Fire,Panipat,5,Fire Truck 1,UCS,90.0,5,0.005,,
+multi_incident,0.02,route_option,3,Fire,Panipat,5,Fire Truck 1,BFS,90.0,5,0.004,,
+multi_incident,0.02,route_option,3,Fire,Panipat,5,Fire Truck 1,DFS,90.0,13,0.011,,
+multi_incident,0.5,incident_reported,5,Accident,Agra,3,,,,,,,"Accident reported in Agra (severity 3, 15 people)."
+multi_incident,0.5,rule,5,Accident,Agra,3,,,,,,,"Rule 'crowded_tourist_hub' fired on Accident #5 in Agra: now severity 3, 60 people."
+multi_incident,0.5,csp,,,,,,,,,,,"CSP: 1 of 1 incidents assigned (4 nodes, 0 values pruned)."
+multi_incident,0.5,dispatch,5,Accident,Agra,3,Ambulance 2,A*,203.0,4,0.03,,"Ambulance 2 sent to Accident in Agra: A* route, 203 km, 4 nodes expanded (others: UCS 203 km, BFS 230 km, DFS 352 km)."
+multi_incident,0.5,route_option,5,Accident,Agra,3,Ambulance 2,A*,203.0,4,0.03,,chosen
+multi_incident,0.5,route_option,5,Accident,Agra,3,Ambulance 2,UCS,203.0,9,0.011,,
+multi_incident,0.5,route_option,5,Accident,Agra,3,Ambulance 2,BFS,230.0,8,0.01,,
+multi_incident,0.5,route_option,5,Accident,Agra,3,Ambulance 2,DFS,352.0,6,0.01,,
+multi_incident,1.0,incident_reported,6,Fire,Chandigarh,4,,,,,,,"Fire reported in Chandigarh (severity 4, 25 people)."
+multi_incident,1.0,csp,,,,,,,,,,,"CSP: 1 of 1 incidents assigned (3 nodes, 0 values pruned)."
+multi_incident,1.0,dispatch,6,Fire,Chandigarh,4,Fire Truck 2,A*,265.0,3,0.011,,"Fire Truck 2 sent to Fire in Chandigarh: A* route, 265 km, 3 nodes expanded (others: UCS 265 km, BFS 265 km, DFS 265 km)."
+multi_incident,1.0,route_option,6,Fire,Chandigarh,4,Fire Truck 2,A*,265.0,3,0.011,,chosen
+multi_incident,1.0,route_option,6,Fire,Chandigarh,4,Fire Truck 2,UCS,265.0,10,0.012,,
+multi_incident,1.0,route_option,6,Fire,Chandigarh,4,Fire Truck 2,BFS,265.0,9,0.007,,
+multi_incident,1.0,route_option,6,Fire,Chandigarh,4,Fire Truck 2,DFS,265.0,14,0.012,,
+multi_incident,1.5,incident_reported,7,Medical,Ajmer,4,,,,,,,"Medical reported in Ajmer (severity 4, 60 people)."
+multi_incident,1.5,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+multi_incident,1.52,resolved,3,Fire,Panipat,5,Fire Truck 1,A*,,,,1.5,Fire Truck 1 reached Panipat: Fire resolved.
+multi_incident,1.52,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+multi_incident,2.0,incident_reported,8,Accident,Meerut,2,,,,,,,"Accident reported in Meerut (severity 2, 10 people)."
+multi_incident,2.0,csp,,,,,,,,,,,"CSP: 1 of 2 incidents assigned (4 nodes, 0 values pruned)."
+multi_incident,2.0,dispatch,8,Accident,Meerut,2,Police 1,A*,70.0,2,0.009,,"Police 1 sent to Accident in Meerut: A* route, 70 km, 2 nodes expanded (others: UCS 70 km, BFS 70 km, DFS 70 km)."
+multi_incident,2.0,route_option,8,Accident,Meerut,2,Police 1,A*,70.0,2,0.009,,chosen
+multi_incident,2.0,route_option,8,Accident,Meerut,2,Police 1,UCS,70.0,4,0.005,,
+multi_incident,2.0,route_option,8,Accident,Meerut,2,Police 1,BFS,70.0,4,0.004,,
+multi_incident,2.0,route_option,8,Accident,Meerut,2,Police 1,DFS,70.0,12,0.011,,
+multi_incident,2.02,escalation,4,Medical,Kota,5,,,,,,,Medical #4 in Kota unresolved: escalated to severity 5.
+multi_incident,2.5,escalation,5,Accident,Agra,4,,,,,,,Accident #5 in Agra unresolved: escalated to severity 4.
+multi_incident,2.52,returning,,,,,Fire Truck 1,A*,,,,,"Fire Truck 1 returning to base (A* route, 90 km)."
+multi_incident,2.52,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+multi_incident,3.0,escalation,6,Fire,Chandigarh,5,,,,,,,Fire #6 in Chandigarh unresolved: escalated to severity 5.
+multi_incident,3.0,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+multi_incident,3.18,resolved,8,Accident,Meerut,2,Police 1,A*,,,,1.18,Police 1 reached Meerut: Accident resolved.
+multi_incident,3.18,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+multi_incident,3.5,escalation,7,Medical,Ajmer,5,,,,,,,Medical #7 in Ajmer unresolved: escalated to severity 5.
+multi_incident,3.5,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+multi_incident,3.9,resolved,5,Accident,Agra,4,Ambulance 2,A*,,,,3.4,Ambulance 2 reached Agra: Accident resolved.
+multi_incident,3.9,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+multi_incident,4.0,at_base,,,,,Fire Truck 1,A*,,,,,Fire Truck 1 is back at base.
+multi_incident,4.0,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+multi_incident,4.2,returning,,,,,Police 1,A*,,,,,"Police 1 returning to base (A* route, 70 km)."
+multi_incident,4.2,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+multi_incident,4.92,returning,,,,,Ambulance 2,A*,,,,,"Ambulance 2 returning to base (A* route, 203 km)."
+multi_incident,4.92,csp,,,,,,,,,,,"CSP: 1 of 1 incidents assigned (3 nodes, 0 values pruned)."
+multi_incident,4.92,dispatch,7,Medical,Ajmer,5,Ambulance 2,A*,436.8,4,0.013,,"Ambulance 2 sent to Medical in Ajmer: A* route, 437 km, 4 nodes expanded (others: UCS 437 km, BFS 495 km, DFS 674 km)."
+multi_incident,4.92,route_option,7,Medical,Ajmer,5,Ambulance 2,A*,436.8,4,0.013,,chosen
+multi_incident,4.92,route_option,7,Medical,Ajmer,5,Ambulance 2,UCS,436.8,12,0.014,,
+multi_incident,4.92,route_option,7,Medical,Ajmer,5,Ambulance 2,BFS,494.8,12,0.009,,
+multi_incident,4.92,route_option,7,Medical,Ajmer,5,Ambulance 2,DFS,673.8,7,0.008,,
+multi_incident,5.36,at_base,,,,,Police 1,A*,,,,,Police 1 is back at base.
+multi_incident,5.42,resolved,6,Fire,Chandigarh,5,Fire Truck 2,A*,,,,4.42,Fire Truck 2 reached Chandigarh: Fire resolved.
+multi_incident,6.44,returning,,,,,Fire Truck 2,A*,,,,,"Fire Truck 2 returning to base (A* route, 265 km)."
+multi_incident,9.74,resolved,4,Medical,Kota,5,Ambulance 1,A*,,,,9.72,Ambulance 1 reached Kota: Medical resolved.
+multi_incident,10.76,returning,,,,,Ambulance 1,DFS,,,,,"Ambulance 1 returning to base (DFS route, 582 km)."
+multi_incident,10.84,at_base,,,,,Fire Truck 2,A*,,,,,Fire Truck 2 is back at base.
+multi_incident,12.22,resolved,7,Medical,Ajmer,5,Ambulance 2,A*,,,,10.72,Ambulance 2 reached Ajmer: Medical resolved.
+road_closures,0.02,incident_reported,9,Fire,Ajmer,5,,,,,,,"Fire reported in Ajmer (severity 5, 200 people)."
+road_closures,0.02,incident_reported,10,Accident,Kota,3,,,,,,,"Accident reported in Kota (severity 3, 40 people)."
+road_closures,0.02,rule,9,Fire,Ajmer,5,,,,,,,"Rule 'mass_casualty' fired on Fire #9 in Ajmer: now severity 5, 200 people."
+road_closures,0.02,csp,,,,,,,,,,,"CSP: 2 of 2 incidents assigned (12 nodes, 0 values pruned)."
+road_closures,0.02,dispatch,9,Fire,Ajmer,5,Fire Truck 1,A*,472.0,7,0.026,,"Fire Truck 1 sent to Fire in Ajmer: A* route, 472 km, 7 nodes expanded (others: UCS 472 km, BFS 472 km, DFS 1022 km)."
+road_closures,0.02,route_option,9,Fire,Ajmer,5,Fire Truck 1,A*,472.0,7,0.026,,chosen
+road_closures,0.02,route_option,9,Fire,Ajmer,5,Fire Truck 1,UCS,472.0,13,0.016,,
+road_closures,0.02,route_option,9,Fire,Ajmer,5,Fire Truck 1,BFS,472.0,13,0.013,,
+road_closures,0.02,route_option,9,Fire,Ajmer,5,Fire Truck 1,DFS,1022.0,9,0.012,,
+road_closures,0.02,dispatch,10,Accident,Kota,3,Ambulance 1,A*,582.0,12,0.027,,"Ambulance 1 sent to Accident in Kota: A* route, 582 km, 12 nodes expanded (others: UCS 582 km, BFS 582 km, DFS 812 km)."
+road_closures,0.02,route_option,10,Accident,Kota,3,Ambulance 1,A*,582.0,12,0.027,,chosen
+road_closures,0.02,route_option,10,Accident,Kota,3,Ambulance 1,UCS,582.0,14,0.015,,
+road_closures,0.02,route_option,10,Accident,Kota,3,Ambulance 1,BFS,582.0,14,0.01,,
+road_closures,0.02,route_option,10,Accident,Kota,3,Ambulance 1,DFS,812.0,8,0.009,,
+road_closures,1.0,road_closed,,,,,,,,,,,Road Alwar-Jaipur CLOSED.
+road_closures,1.0,replan,9,Fire,Ajmer,5,Fire Truck 1,A*,440.0,4,0.015,,"Fire Truck 1: road ahead closed, rerouting from Alwar - REPLANNING (new route by A*)."
+road_closures,1.0,replan,10,Accident,Kota,3,Ambulance 1,A*,550.0,8,0.02,,"Ambulance 1: road ahead closed, rerouting from Alwar - REPLANNING (new route by A*)."
+road_closures,2.0,road_closed,,,,,,,,,,,Road Jaipur-Ajmer CLOSED.
+road_closures,2.0,replan,9,Fire,Ajmer,5,Fire Truck 1,A*,760.0,13,0.028,,"Fire Truck 1: road ahead closed, rerouting from Alwar - REPLANNING (new route by A*)."
+road_closures,2.02,escalation,10,Accident,Kota,4,,,,,,,Accident #10 in Kota unresolved: escalated to severity 4.
+road_closures,3.0,incident_reported,11,Medical,Gwalior,4,,,,,,,"Medical reported in Gwalior (severity 4, 80 people)."
+road_closures,3.0,csp,,,,,,,,,,,"CSP: 1 of 1 incidents assigned (3 nodes, 0 values pruned)."
+road_closures,3.0,dispatch,11,Medical,Gwalior,4,Ambulance 2,A*,323.0,6,0.019,,"Ambulance 2 sent to Medical in Gwalior: A* route, 323 km, 6 nodes expanded (others: UCS 323 km, BFS 350 km, DFS 472 km)."
+road_closures,3.0,route_option,11,Medical,Gwalior,4,Ambulance 2,A*,323.0,6,0.019,,chosen
+road_closures,3.0,route_option,11,Medical,Gwalior,4,Ambulance 2,UCS,323.0,11,0.012,,
+road_closures,3.0,route_option,11,Medical,Gwalior,4,Ambulance 2,BFS,350.0,12,0.009,,
+road_closures,3.0,route_option,11,Medical,Gwalior,4,Ambulance 2,DFS,472.0,7,0.008,,
+road_closures,4.0,road_reopened,,,,,,,,,,,Road Jaipur-Ajmer reopened.
+road_closures,4.02,escalation,10,Accident,Kota,5,,,,,,,Accident #10 in Kota unresolved: escalated to severity 5.
+road_closures,5.02,escalation,11,Medical,Gwalior,5,,,,,,,Medical #11 in Gwalior unresolved: escalated to severity 5.
+road_closures,8.4,resolved,11,Medical,Gwalior,5,Ambulance 2,A*,,,,5.4,Ambulance 2 reached Gwalior: Medical resolved.
+road_closures,9.42,returning,,,,,Ambulance 2,A*,,,,,"Ambulance 2 returning to base (A* route, 323 km)."
+road_closures,12.24,resolved,10,Accident,Kota,5,Ambulance 1,A*,,,,12.22,Ambulance 1 reached Kota: Accident resolved.
+road_closures,13.26,returning,,,,,Ambulance 1,DFS,,,,,"Ambulance 1 returning to base (DFS route, 635 km)."
+road_closures,14.8,at_base,,,,,Ambulance 2,A*,,,,,Ambulance 2 is back at base.
+road_closures,15.74,resolved,9,Fire,Ajmer,5,Fire Truck 1,A*,,,,15.72,Fire Truck 1 reached Ajmer: Fire resolved.
+showcase,0.02,incident_reported,12,Fire,Jaipur,4,,,,,,,"Fire reported in Jaipur (severity 4, 60 people)."
+showcase,0.02,incident_reported,13,Fire,Agra,3,,,,,,,"Fire reported in Agra (severity 3, 30 people)."
+showcase,0.02,incident_reported,14,Fire,Meerut,2,,,,,,,"Fire reported in Meerut (severity 2, 10 people)."
+showcase,0.02,incident_reported,15,Medical,Kota,3,,,,,,,"Medical reported in Kota (severity 3, 120 people)."
+showcase,0.02,rule,15,Medical,Kota,4,,,,,,,"Rule 'mass_casualty' fired on Medical #15 in Kota: now severity 4, 120 people."
+showcase,0.02,csp,,,,,,,,,,,"CSP: 3 of 4 incidents assigned (19 nodes, 12 values pruned)."
+showcase,0.02,dispatch,15,Medical,Kota,4,Ambulance 1,A*,582.0,12,0.035,,"Ambulance 1 sent to Medical in Kota: A* route, 582 km, 12 nodes expanded (others: UCS 582 km, BFS 582 km, DFS 812 km)."
+showcase,0.02,route_option,15,Medical,Kota,4,Ambulance 1,A*,582.0,12,0.035,,chosen
+showcase,0.02,route_option,15,Medical,Kota,4,Ambulance 1,UCS,582.0,14,0.016,,
+showcase,0.02,route_option,15,Medical,Kota,4,Ambulance 1,BFS,582.0,14,0.013,,
+showcase,0.02,route_option,15,Medical,Kota,4,Ambulance 1,DFS,812.0,8,0.011,,
+showcase,0.02,dispatch,12,Fire,Jaipur,4,Fire Truck 1,A*,332.0,5,0.014,,"Fire Truck 1 sent to Fire in Jaipur: A* route, 332 km, 5 nodes expanded (others: UCS 332 km, BFS 332 km, DFS 332 km)."
+showcase,0.02,route_option,12,Fire,Jaipur,4,Fire Truck 1,A*,332.0,5,0.014,,chosen
+showcase,0.02,route_option,12,Fire,Jaipur,4,Fire Truck 1,UCS,332.0,12,0.013,,
+showcase,0.02,route_option,12,Fire,Jaipur,4,Fire Truck 1,BFS,332.0,11,0.008,,
+showcase,0.02,route_option,12,Fire,Jaipur,4,Fire Truck 1,DFS,332.0,10,0.009,,
+showcase,0.02,dispatch,13,Fire,Agra,3,Fire Truck 2,A*,203.0,4,0.011,,"Fire Truck 2 sent to Fire in Agra: A* route, 203 km, 4 nodes expanded (others: UCS 203 km, BFS 230 km, DFS 352 km)."
+showcase,0.02,route_option,13,Fire,Agra,3,Fire Truck 2,A*,203.0,4,0.011,,chosen
+showcase,0.02,route_option,13,Fire,Agra,3,Fire Truck 2,UCS,203.0,9,0.009,,
+showcase,0.02,route_option,13,Fire,Agra,3,Fire Truck 2,BFS,230.0,8,0.005,,
+showcase,0.02,route_option,13,Fire,Agra,3,Fire Truck 2,DFS,352.0,6,0.006,,
+showcase,1.5,road_closed,,,,,,,,,,,Road Alwar-Jaipur CLOSED.
+showcase,1.5,replan,12,Fire,Jaipur,4,Fire Truck 1,A*,300.0,3,0.012,,"Fire Truck 1: road ahead closed, rerouting from Alwar - REPLANNING (new route by A*)."
+showcase,1.5,replan,15,Medical,Kota,4,Ambulance 1,A*,550.0,8,0.02,,"Ambulance 1: road ahead closed, rerouting from Alwar - REPLANNING (new route by A*)."
+showcase,1.5,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+showcase,2.02,escalation,12,Fire,Jaipur,5,,,,,,,Fire #12 in Jaipur unresolved: escalated to severity 5.
+showcase,2.02,escalation,13,Fire,Agra,4,,,,,,,Fire #13 in Agra unresolved: escalated to severity 4.
+showcase,2.02,escalation,14,Fire,Meerut,3,,,,,,,Fire #14 in Meerut unresolved: escalated to severity 3.
+showcase,2.02,escalation,15,Medical,Kota,5,,,,,,,Medical #15 in Kota unresolved: escalated to severity 5.
+showcase,2.02,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+showcase,2.5,breakdown,13,Fire,Agra,4,Fire Truck 2,A*,,,,,Fire Truck 2 BROKE DOWN after Mathura; out of service for 2 h.
+showcase,2.5,requeued,13,Fire,Agra,4,,,,,,,Fire #13 in Agra needs another vehicle: re-allocating.
+showcase,2.5,csp,,,,,,,,,,,"CSP: 0 of 2 incidents assigned (3 nodes, 0 values pruned)."
+showcase,4.02,escalation,13,Fire,Agra,5,,,,,,,Fire #13 in Agra unresolved: escalated to severity 5.
+showcase,4.02,escalation,14,Fire,Meerut,4,,,,,,,Fire #14 in Meerut unresolved: escalated to severity 4.
+showcase,4.02,csp,,,,,,,,,,,"CSP: 0 of 2 incidents assigned (3 nodes, 0 values pruned)."
+showcase,4.52,repaired,,,,,Fire Truck 2,A*,,,,,Fire Truck 2 repaired.
+showcase,4.52,csp,,,,,,,,,,,"CSP: 1 of 2 incidents assigned (4 nodes, 1 values pruned)."
+showcase,4.52,dispatch,13,Fire,Agra,5,Fire Truck 2,A*,54.2,1,0.002,,"Fire Truck 2 sent to Fire in Agra: A* route, 54 km, 1 nodes expanded (others: UCS 54 km, BFS 54 km, DFS 54 km)."
+showcase,4.52,route_option,13,Fire,Agra,5,Fire Truck 2,A*,54.2,1,0.002,,chosen
+showcase,4.52,route_option,13,Fire,Agra,5,Fire Truck 2,UCS,54.2,1,0.001,,
+showcase,4.52,route_option,13,Fire,Agra,5,Fire Truck 2,BFS,54.2,1,0.001,,
+showcase,4.52,route_option,13,Fire,Agra,5,Fire Truck 2,DFS,54.2,1,0.001,,
+showcase,5.44,resolved,13,Fire,Agra,5,Fire Truck 2,A*,,,,5.42,Fire Truck 2 reached Agra: Fire resolved.
+showcase,5.44,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+showcase,6.04,escalation,14,Fire,Meerut,5,,,,,,,Fire #14 in Meerut unresolved: escalated to severity 5.
+showcase,6.04,csp,,,,,,,,,,,"CSP: 0 of 1 incidents assigned (2 nodes, 0 values pruned)."
+showcase,6.46,returning,,,,,Fire Truck 2,A*,,,,,"Fire Truck 2 returning to base (A* route, 203 km)."
+showcase,6.46,csp,,,,,,,,,,,"CSP: 1 of 1 incidents assigned (3 nodes, 0 values pruned)."
+showcase,6.46,dispatch,14,Fire,Meerut,5,Fire Truck 2,A*,271.8,4,0.012,,"Fire Truck 2 sent to Fire in Meerut: A* route, 272 km, 4 nodes expanded (others: UCS 272 km, BFS 272 km, DFS 272 km)."
+showcase,6.46,route_option,14,Fire,Meerut,5,Fire Truck 2,A*,271.8,4,0.012,,chosen
+showcase,6.46,route_option,14,Fire,Meerut,5,Fire Truck 2,UCS,271.8,9,0.01,,
+showcase,6.46,route_option,14,Fire,Meerut,5,Fire Truck 2,BFS,271.8,10,0.008,,
+showcase,6.46,route_option,14,Fire,Meerut,5,Fire Truck 2,DFS,271.8,6,0.006,,
+showcase,8.06,resolved,12,Fire,Jaipur,5,Fire Truck 1,A*,,,,8.04,Fire Truck 1 reached Jaipur: Fire resolved.
+showcase,9.08,returning,,,,,Fire Truck 1,A*,,,,,"Fire Truck 1 returning to base (A* route, 385 km)."
+showcase,11.0,resolved,14,Fire,Meerut,5,Fire Truck 2,A*,,,,10.98,Fire Truck 2 reached Meerut: Fire resolved.
+showcase,12.02,returning,,,,,Fire Truck 2,A*,,,,,"Fire Truck 2 returning to base (A* route, 70 km)."
+showcase,12.24,resolved,15,Medical,Kota,5,Ambulance 1,A*,,,,12.22,Ambulance 1 reached Kota: Medical resolved.

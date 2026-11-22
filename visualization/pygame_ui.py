@@ -1,260 +1,385 @@
-"""Pygame map: static city graph, animated vehicles, click-to-spawn incidents,
-and a side panel that exposes each agent's algorithm / route / metrics."""
-import math
+"""AEGIS control centre: the map on the left, a control panel on the right.
 
+The panel sets up incidents (type, location, severity, people), can report
+several at once as a batch, triggers disruptions (road closures, vehicle
+breakdowns, random events) and shows the priority order, the fleet and the
+decision log."""
 import pygame
 
-from algorithms import ALGORITHMS
-from environment.incidents import Incident
-from environment.vehicles import default_fleet
+from ai.heuristics import urgency
+from prompt_engine.parser import describe
+from prompt_engine.scenario_generator import build_scenario, schedule
+from simulation.engine import AVG_SPEED_KMH, Simulation
+from visualization.map_view import MAP_W, MapView
+from visualization.widgets import Button, Cycler, Stepper
 
-MAP_W, PANEL_W, H = 820, 400, 720
-BG, PANEL_BG = (22, 26, 34), (30, 35, 46)
-EDGE, EDGE_CLOSED = (70, 78, 95), (150, 50, 50)
-TEXT, DIM = (230, 233, 240), (140, 148, 165)
-INCIDENT = (255, 70, 70)
-LABEL_SIDE = {"Delhi": "top", "Gurugram": "left", "Faridabad": "right",
-              "Meerut": "right", "Panipat": "left", "Mathura": "right",
-              "Bharatpur": "left", "Agra": "right"}
+W, H = 1280, 720
+PX, PANEL_W = MAP_W, W - MAP_W
+X0, CW = PX + 16, PANEL_W - 32
+PANEL_BG, SECTION, RULE = (24, 28, 37), (32, 37, 49), (52, 58, 74)
+TEXT, DIM, ACCENT = (232, 235, 242), (150, 158, 175), (110, 175, 255)
+RED, AMBER, GREEN = (236, 90, 90), (240, 170, 60), (90, 200, 130)
+BASE_SPEED_KMPS = 110           # simulated km covered per real second at 1x
+SPEEDS = [0.25, 0.5, 1, 2, 4, 8]
 INCIDENT_TYPES = ["Fire", "Accident", "Medical"]
-BASE_SPEED_KMPS = 110          # simulated km covered per real second at 1x
+DEMO = "showcase"
+HIGHLIGHT_MS = 5000             # a road / vehicle picked in the panel stays highlighted this long
 
 
 class App:
-    def __init__(self, graph):
+    def __init__(self, graph, use_llm=False):
         pygame.init()
-        pygame.display.set_caption("AEGIS - Emergency Response Simulation")
-        self.screen = pygame.display.set_mode((MAP_W + PANEL_W, H))
+        pygame.display.set_caption("AEGIS - Emergency Response Control Centre")
+        self.screen = pygame.display.set_mode((W, H), pygame.SCALED | pygame.RESIZABLE)
         self.clock = pygame.time.Clock()
-        self.graph = graph
-        self.font = pygame.font.SysFont("segoeui", 15)
-        self.small = pygame.font.SysFont("segoeui", 12)
-        self.bold = pygame.font.SysFont("segoeui", 16, bold=True)
-        self.title = pygame.font.SysFont("segoeui", 20, bold=True)
-        self.pos = self._project()
+        self.graph, self.use_llm = graph, use_llm
+        self.f = self._fonts()
+        self.map = MapView(graph, self.f)
+        self.speed_i, self.paused, self.random_on = 1, False, False
+        self.batch, self.typing, self.buffer = [], False, ""
+        self.touched = {"road": -HIGHLIGHT_MS, "vehicle": -HIGHLIGHT_MS}
         self.reset()
+        self._build_widgets()
+
+    @staticmethod
+    def _fonts():
+        def sys(size, bold=False, italic=False):
+            return pygame.font.SysFont("segoeui", size, bold=bold, italic=italic)
+        return {"title": sys(19, True), "head": sys(11, True), "body": sys(13), "body_bold": sys(13, True),
+                "small": sys(12), "small_bold": sys(12, True), "tiny": sys(11), "tiny_bold": sys(11, True),
+                "city": sys(13, True), "state": sys(15, True), "italic": sys(12, italic=True)}
 
     # ---- state -------------------------------------------------------
     def reset(self):
-        self.fleet = default_fleet()
-        self.incident = None
-        self.incident_count = 0
+        for road in self.graph.roads.values():
+            road.closed = False
+        self.sim = Simulation(self.graph)
+        self.sim.random_events = self.random_on
+
+    @property
+    def speed(self):
+        return SPEEDS[self.speed_i]
+
+    # ---- widgets -----------------------------------------------------
+    def _build_widgets(self):
+        roads = sorted(self.graph.roads.values(), key=lambda r: (r.a, r.b))
+        c1, c2 = X0 + 62, X0 + 298
+        self.kind = Cycler((c1, 70, 160, 26), INCIDENT_TYPES)
+        self.severity = Stepper((c2, 70, 150, 26), 3, 1, 5)
+        self.loc = Cycler((c1, 102, 160, 26), self.graph.nodes)
+        self.loc.set("Jaipur")
+        self.people = Stepper((c2, 102, 150, 26), 40, 10, 500, 10)
+        self.road = Cycler((c1, 238, 258, 26), roads,
+                           label=lambda r: f"{r.a} - {r.b}  ({r.distance:g} km)"
+                           + ("  CLOSED" if r.closed else ""), on_change=lambda _: self.touch("road"))
+        self.vehicle = Cycler((c1, 270, 258, 26), lambda: [v.name for v in self.sim.fleet],
+                              on_change=lambda _: self.touch("vehicle"))
+        self.widgets = [
+            self.kind, self.severity, self.loc, self.people, self.road, self.vehicle,
+            Button((X0, 150, 144, 28), "Report now", self.report_now, "primary"),
+            Button((X0 + 152, 150, 144, 28), "Add to batch", self.add_to_batch),
+            Button((X0 + 304, 150, 144, 28), lambda: f"Dispatch batch ({len(self.batch)})",
+                   self.dispatch_batch, "ok", enabled=lambda: bool(self.batch)),
+            Button((X0 + 388, 184, 60, 22), "Clear", self.batch.clear, enabled=lambda: bool(self.batch)),
+            Button((X0 + 328, 238, 120, 26),
+                   lambda: "Reopen road" if self.road.value.closed else "Close road",
+                   self.toggle_road, lambda: "ok" if self.road.value.closed else "danger"),
+            Button((X0 + 328, 270, 120, 26), "Break down", self.break_down, "danger",
+                   enabled=lambda: self._selected_vehicle().status in ("dispatched", "returning")),
+            Button((X0, 302, 236, 26),
+                   lambda: f"Random disruptions: {'ON' if self.random_on else 'OFF'}",
+                   self.toggle_random, lambda: "danger" if self.random_on else "normal"),
+            Button((X0, 360, 96, 28), lambda: "Resume" if self.paused else "Pause", self.toggle_pause),
+            Button((X0 + 104, 360, 30, 28), "-", lambda: self.change_speed(-1)),
+            Button((X0 + 196, 360, 30, 28), "+", lambda: self.change_speed(1)),
+            Button((X0 + 234, 360, 96, 28), "Reset", self.reset),
+            Button((X0 + 338, 360, 110, 28), "Run demo", self.start_demo, "primary"),
+        ]
+
+    def touch(self, what):
+        self.touched[what] = pygame.time.get_ticks()
+
+    def _recent(self, what, row_y):
+        """Highlight while recently picked, or while the mouse is on its panel row."""
+        mx, my = pygame.mouse.get_pos()
+        hovering = mx >= PX and row_y <= my <= row_y + 26
+        return hovering or pygame.time.get_ticks() - self.touched[what] < HIGHLIGHT_MS
+
+    def _selected_vehicle(self):
+        return self.sim.vehicle(self.vehicle.value)
+
+    # ---- actions -----------------------------------------------------
+    def _form(self):
+        return dict(kind=self.kind.value, location=self.loc.value,
+                    severity=self.severity.value, people=self.people.value)
+
+    def report_now(self):
+        self.sim.report(**self._form())
+
+    def add_to_batch(self):
+        self.batch.append(self._form())
+
+    def dispatch_batch(self):
+        self.sim.report_batch(list(self.batch))
+        self.batch.clear()
+
+    def toggle_road(self):
+        r = self.road.value
+        self.sim.toggle_road(r.a, r.b)
+
+    def break_down(self):
+        self.sim.break_down(self.vehicle.value)
+
+    def toggle_random(self):
+        self.random_on = not self.random_on
+        self.sim.random_events = self.random_on
+        self.sim.note(f"Random disruptions switched {'on' if self.random_on else 'off'}.")
+
+    def toggle_pause(self):
+        self.paused = not self.paused
+
+    def change_speed(self, d):
+        self.speed_i = max(0, min(len(SPEEDS) - 1, self.speed_i + d))
+
+    def start_demo(self):
+        self.reset()
         self.paused = False
-        self.time_scale = 1.0
-        self.message = "Click a city to report an incident."
+        scenario = self.sim.queue.load_scenario(DEMO)
+        self.sim.note(f"DEMO: {scenario['description']}")
 
-    def _project(self):
-        coords = self.graph.coords
-        lats = [c[0] for c in coords.values()]
-        lons = [c[1] for c in coords.values()]
-        kx = math.cos(math.radians(sum(lats) / len(lats)))
-        w = (max(lons) - min(lons)) * kx
-        h = max(lats) - min(lats)
-        pad = 70
-        # schematic map: x and y scaled independently so the dense Delhi
-        # cluster gets room to breathe
-        sx, sy = (MAP_W - 2 * pad) / w, (H - 2 * pad) / h
-        return {n: (pad + (lon - min(lons)) * kx * sx,
-                    pad + (max(lats) - lat) * sy)
-                for n, (lat, lon) in coords.items()}
-
-    # ---- simulation ----------------------------------------------------
-    def node_at(self, pos, radius=20):
-        best, best_d = None, radius
-        for n, p in self.pos.items():
-            d = math.dist(pos, p)
-            if d <= best_d:
-                best, best_d = n, d
-        return best
-
-    def spawn_incident(self, node):
-        if any(v.moving for v in self.fleet):
-            self.message = "Vehicles still en route - wait for arrival."
+    def submit_scenario(self):
+        """Typed scenario (beta): interpret it and queue its events from now."""
+        text, self.buffer, self.typing = self.buffer.strip(), "", False
+        if not text:
             return
-        kind = INCIDENT_TYPES[self.incident_count % len(INCIDENT_TYPES)]
-        self.incident_count += 1
-        self.incident = Incident(kind, node, severity=3 + self.incident_count % 3)
-        for v in self.fleet:
-            v.dispatch(ALGORITHMS[v.algorithm](self.graph, v.location, node))
-        self.message = f"{kind} reported in {node}. All units dispatched."
+        scenario = build_scenario(text, self.graph, use_llm=self.use_llm)
+        for warning in scenario["warnings"]:
+            self.sim.note(f"Prompt engine: {warning}")
+        if scenario["events"]:
+            schedule(self.sim, scenario)
+            self.sim.note("Prompt engine queued: " + "; ".join(describe(e) for e in scenario["events"]))
+        else:
+            self.sim.note("Prompt engine: could not interpret that scenario.")
 
-    def step(self, dt):
-        if self.paused:
+    # ---- input -------------------------------------------------------
+    def handle(self, event):
+        if event.type == pygame.QUIT:
+            return False
+        if event.type == pygame.KEYDOWN:
+            return self._key(event)
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button in (1, 3):
+            if event.pos[0] < MAP_W:
+                self._map_click(event.pos, event.button)
+            elif event.button == 1:
+                any(w.click(event.pos) for w in self.widgets)
+        return True
+
+    def _key(self, event):
+        if self.typing:
+            if event.key == pygame.K_ESCAPE:
+                self.typing, self.buffer = False, ""
+            elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                self.submit_scenario()
+            elif event.key == pygame.K_BACKSPACE:
+                self.buffer = self.buffer[:-1]
+            elif event.unicode and event.unicode.isprintable() and len(self.buffer) < 240:
+                self.buffer += event.unicode
+            return True
+        keys = {pygame.K_SPACE: self.toggle_pause, pygame.K_r: self.reset, pygame.K_d: self.start_demo,
+                pygame.K_RETURN: self.report_now, pygame.K_EQUALS: lambda: self.change_speed(1),
+                pygame.K_PLUS: lambda: self.change_speed(1), pygame.K_KP_PLUS: lambda: self.change_speed(1),
+                pygame.K_MINUS: lambda: self.change_speed(-1), pygame.K_KP_MINUS: lambda: self.change_speed(-1)}
+        if event.key == pygame.K_ESCAPE:
+            return False
+        if event.key == pygame.K_t:
+            self.typing = True
+        elif event.key in keys:
+            keys[event.key]()
+        return True
+
+    def _map_click(self, pos, button):
+        if button == 3:
+            road = self.map.road_at(pos)
+            if road:
+                self.road.set(road)
+                self.touch("road")
+                self.sim.toggle_road(road.a, road.b)
             return
-        advance = BASE_SPEED_KMPS * self.time_scale * dt
-        for v in self.fleet:
-            if not v.moving:
-                continue
-            v.seg_progress += advance
-            while v.moving:
-                dist = self.graph.road(v.path[v.seg], v.path[v.seg + 1]).distance
-                if v.seg_progress < dist:
-                    break
-                v.seg_progress -= dist
-                v.seg += 1
-                v.location = v.path[v.seg]
-                if v.seg >= len(v.path) - 1:
-                    v.moving, v.seg_progress = False, 0.0
-        if self.incident and self.incident.status == "active":
-            if not any(v.moving for v in self.fleet):
-                self.incident.status = "resolved"
-                self.message = f"All units arrived at {self.incident.location}."
+        for i, v in enumerate(self.sim.fleet):
+            x, y, _ = self.map.vehicle_pose(i, v, self.sim)
+            if abs(pos[0] - x) < 15 and abs(pos[1] - y) < 11:
+                self.vehicle.set(v.name)
+                self.touch("vehicle")
+                return
+        node = self.map.node_at(pos)
+        if node:
+            self.loc.set(node)
+            return
+        road = self.map.road_at(pos)
+        if road:
+            self.road.set(road)
+            self.touch("road")
 
-    def vehicle_xy(self, i, v):
-        if v.moving:
-            a, b = self.pos[v.path[v.seg]], self.pos[v.path[v.seg + 1]]
-            dist = self.graph.road(v.path[v.seg], v.path[v.seg + 1]).distance
-            t = v.seg_progress / dist
-            base = (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
-            off = self._lane_offset(a, b, i)
-            return base[0] + off[0], base[1] + off[1]
-        x, y = self.pos[v.location]
-        ang = math.radians(45 + 90 * i)
-        return x + 15 * math.cos(ang), y + 15 * math.sin(ang)
-
-    @staticmethod
-    def _lane_offset(a, b, i):
-        dx, dy = b[0] - a[0], b[1] - a[1]
-        n = math.hypot(dx, dy) or 1
-        k = (i - 1.5) * 4
-        return -dy / n * k, dx / n * k
-
-    # ---- drawing -------------------------------------------------------
+    # ---- drawing -----------------------------------------------------
     def draw(self):
         s = self.screen
-        s.fill(BG)
-        self._draw_roads(s)
-        self._draw_routes(s)
-        self._draw_nodes(s)
-        self._draw_incident(s)
-        self._draw_vehicles(s)
+        s.set_clip(pygame.Rect(0, 0, MAP_W, H))
+        self.map.draw(s, self.sim, self)
+        if self.typing:
+            self._draw_prompt(s)
+        s.set_clip(None)
         self._draw_panel(s)
 
-    def _draw_roads(self, s):
-        for r in self.graph.roads.values():
-            a, b = self.pos[r.a], self.pos[r.b]
-            pygame.draw.line(s, EDGE_CLOSED if r.closed else EDGE, a, b, 2)
-            mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
-            label = self.small.render(f"{r.distance:g}", True, DIM)
-            rect = label.get_rect(center=(mx, my))
-            pygame.draw.rect(s, BG, rect.inflate(6, 2))
-            s.blit(label, rect)
+    @property
+    def location(self):
+        return self.loc.value
 
-    def _draw_routes(self, s):
-        for i, v in enumerate(self.fleet):
-            for u, w in zip(v.path, v.path[1:]):
-                a, b = self.pos[u], self.pos[w]
-                o = self._lane_offset(a, b, i)
-                pygame.draw.line(s, v.color, (a[0] + o[0], a[1] + o[1]),
-                                 (b[0] + o[0], b[1] + o[1]), 3)
+    @property
+    def selected_road(self):
+        return self.road.value if self._recent("road", 238) else None
 
-    def _draw_nodes(self, s):
-        for n, (x, y) in self.pos.items():
-            pygame.draw.circle(s, (45, 52, 68), (x, y), 10)
-            pygame.draw.circle(s, (170, 180, 200), (x, y), 10, 2)
-            label = self.font.render(n, True, TEXT)
-            side = LABEL_SIDE.get(n, "bottom")
-            if side == "left":
-                rect = label.get_rect(midright=(x - 14, y))
-            elif side == "right":
-                rect = label.get_rect(midleft=(x + 14, y))
-            elif side == "top":
-                rect = label.get_rect(midbottom=(x, y - 13))
-            else:
-                rect = label.get_rect(midtop=(x, y + 13))
-            s.blit(label, rect)
+    @property
+    def selected_vehicle(self):
+        return self.vehicle.value if self._recent("vehicle", 270) else None
 
-    def _draw_incident(self, s):
-        inc = self.incident
-        if not inc:
-            return
-        x, y = self.pos[inc.location]
-        color = INCIDENT if inc.status == "active" else (90, 190, 120)
-        pulse = 4 * math.sin(pygame.time.get_ticks() / 150) if inc.status == "active" else 0
-        pygame.draw.circle(s, color, (x, y), 20 + pulse, 3)
-        pygame.draw.circle(s, color, (x, y), 6)
-        tag = self.bold.render(inc.type.upper(), True, color)
-        s.blit(tag, tag.get_rect(midbottom=(x, y - 24)))
+    @property
+    def focus_vehicle(self):
+        return self.vehicle.value
 
-    def _draw_vehicles(self, s):
-        for i, v in enumerate(self.fleet):
-            x, y = self.vehicle_xy(i, v)
-            pygame.draw.circle(s, (10, 10, 14), (x, y), 8)
-            pygame.draw.circle(s, v.color, (x, y), 6)
+    def _head(self, s, text, y, right=""):
+        s.blit(self.f["head"].render("  ".join(text.split(" ")).upper(), True, ACCENT), (X0, y))
+        if right:
+            label = self.f["tiny"].render(right, True, DIM)
+            s.blit(label, label.get_rect(topright=(X0 + CW, y)))
+
+    def _label(self, s, text, x, y):
+        label = self.f["small"].render(text, True, DIM)
+        s.blit(label, label.get_rect(midleft=(x, y + 13)))
 
     def _draw_panel(self, s):
-        x0 = MAP_W
-        pygame.draw.rect(s, PANEL_BG, (x0, 0, PANEL_W, H))
-        x, y = x0 + 18, 16
-        s.blit(self.title.render("AEGIS - AI Decision Panel", True, TEXT), (x, y))
-        y += 34
-        y = self._text(s, self.message, x, y, DIM, PANEL_W - 36) + 8
+        mouse = pygame.mouse.get_pos()
+        pygame.draw.rect(s, PANEL_BG, (PX, 0, PANEL_W, H))
+        pygame.draw.line(s, RULE, (PX, 0), (PX, H), 2)
+        s.blit(self.f["title"].render("AEGIS Control Centre", True, TEXT), (X0, 12))
+        state = "PAUSED" if self.paused else f"{self.speed:g}x"
+        clock = self.f["body_bold"].render(f"t = {self.sim.now:5.1f} h   {state}", True,
+                                           AMBER if self.paused else GREEN)
+        s.blit(clock, clock.get_rect(topright=(X0 + CW, 17)))
 
-        inc = self.incident
-        if inc:
-            line = f"{inc.type} - {inc.location}   [{inc.status}]   severity {inc.severity}"
-            s.blit(self.bold.render("Priority Incident", True, INCIDENT), (x, y))
-            y += 22
-            y = self._text(s, line, x, y, TEXT, PANEL_W - 36) + 8
+        self._head(s, "1 Report an incident", 50)
+        self._label(s, "Type", X0, 70)
+        self._label(s, "Severity", X0 + 236, 70)
+        self._label(s, "Location", X0, 102)
+        self._label(s, "People", X0 + 236, 102)
+        tip = "Click a city on the map to choose the location.  Enter = Report now."
+        s.blit(self.f["tiny"].render(tip, True, DIM), (X0, 132))
+        batch = ", ".join(f"{b['kind']} {b['location']} S{b['severity']}" for b in self.batch)
+        s.blit(self.f["small"].render(f"Batch: {batch or 'empty - incidents added here happen together'}"[:70],
+                                      True, TEXT if self.batch else DIM), (X0, 186))
 
-        for v in self.fleet:
-            pygame.draw.circle(s, v.color, (x + 6, y + 10), 6)
-            head = f"{v.name}  -  {v.algorithm}"
-            s.blit(self.bold.render(head, True, TEXT), (x + 20, y))
-            y += 22
-            if v.path:
-                action = "EN ROUTE" if v.moving else "ARRIVED"
-                route = " > ".join(v.path)
-                y = self._text(s, f"Route: {route}", x + 20, y, TEXT, PANEL_W - 56)
-                stats = (f"{action}   {v.cost:.0f} km   "
-                         f"{v.cost / 60:.1f} h   expanded {v.nodes_expanded}")
-                y = self._text(s, stats, x + 20, y, DIM, PANEL_W - 56)
-            else:
-                y = self._text(s, f"Idle at {v.location}", x + 20, y, DIM, PANEL_W - 56)
-            y += 8
+        self._head(s, "2 Disruptions", 218)
+        self._label(s, "Road", X0, 238)
+        self._label(s, "Vehicle", X0, 270)
+        hint = self.f["tiny"].render("roads get blocked, trucks break down", True, DIM)
+        s.blit(hint, hint.get_rect(midleft=(X0 + 246, 315)))
 
-        closed = [f"{r.a}-{r.b}" for r in self.graph.roads.values() if r.closed]
-        status = ", ".join(closed) if closed else "all roads open"
-        y = self._text(s, f"Road status: {status}", x, y, DIM, PANEL_W - 36)
+        self._head(s, "3 Simulation", 340)
+        speed = self.f["body_bold"].render(f"{self.speed:g}x", True, TEXT)
+        s.blit(speed, speed.get_rect(center=(X0 + 165, 374)))
 
-        help_lines = ["Click city: report incident", "SPACE pause   +/- speed   R reset",
-                      f"Speed {self.time_scale:g}x" + ("   PAUSED" if self.paused else "")]
-        y = H - 20 - 18 * len(help_lines)
-        for line in help_lines:
-            s.blit(self.small.render(line, True, DIM), (x, y))
+        for w in self.widgets:
+            w.draw(s, self.f["small_bold"] if isinstance(w, Button) else self.f["small"], mouse)
+
+        pygame.draw.line(s, RULE, (X0, 400), (X0 + CW, 400))
+        self._draw_priority(s, 408)
+        self._draw_fleet(s, 506)
+        self._draw_log(s, 620)
+
+    def _draw_priority(self, s, y):
+        self._head(s, "Priority order", y, "urgency = severity x people / hours waiting")
+        queue = self.sim.ranked()
+        y += 18
+        if not queue:
+            s.blit(self.f["small"].render("No open incidents.", True, DIM), (X0, y))
+        for rank, inc in enumerate(queue[:4], 1):
+            color = RED if inc.status == "active" else AMBER
+            pygame.draw.circle(s, color, (X0 + 5, y + 8), 4)
+            s.blit(self.f["small_bold"].render(f"{rank}. {inc.type} · {inc.location}", True, TEXT), (X0 + 14, y))
+            detail = f"S{inc.severity} · {inc.people_affected} ppl · urg {urgency(inc, self.sim.now):.0f}"
+            s.blit(self.f["small"].render(detail, True, DIM), (X0 + 168, y))
+            who = inc.assigned_to or "WAITING"
+            label = self.f["small_bold"].render(who, True, color)
+            s.blit(label, label.get_rect(topright=(X0 + CW, y)))
             y += 18
+        if len(queue) > 4:
+            s.blit(self.f["tiny"].render(f"+{len(queue) - 4} more", True, DIM), (X0 + 14, y))
 
-    def _text(self, s, text, x, y, color, width):
-        words, line = text.split(" "), ""
-        for w in words:
-            trial = f"{line} {w}".strip()
-            if self.font.size(trial)[0] > width and line:
-                s.blit(self.font.render(line, True, color), (x, y))
-                y += 19
-                line = w
+    def _draw_fleet(self, s, y):
+        self._head(s, "Fleet", y, f"base: {self.sim.depot}")
+        y += 18
+        for v in self.sim.fleet:
+            spr = self.map.sprite(v.kind, 0)
+            s.blit(spr, (X0, y))
+            s.blit(self.f["small_bold"].render(v.name, True, TEXT), (X0 + 36, y))
+            text, color = self._status(v)
+            s.blit(self.f["small"].render(text, True, color), (X0 + 136, y))
+            y += 19
+
+    def _status(self, v):
+        now = self.sim.now
+        if v.status == "idle":
+            return ("At base" if v.location == self.sim.depot else f"Idle at {v.location}"), DIM
+        if v.status == "dispatched":
+            if v.backtrack:
+                how = f"turning back to {v.path[v.seg]}"
+            elif v.pending:
+                how = f"new route from {v.path[v.seg + 1]}"
+            else:
+                how = f"{v.algorithm} · {self.map.remaining_km(v):.0f} km left"
+            return f"To {v.target} · {how}", ACCENT
+        if v.status == "on_scene":
+            return f"On scene at {v.location} · {max(0, v.until - now):.1f} h", GREEN
+        if v.status == "returning":
+            return f"Returning to base · {self.map.remaining_km(v):.0f} km", DIM
+        return f"BROKEN DOWN · repaired in {max(0, v.until - now):.1f} h", RED
+
+    def _draw_log(self, s, y):
+        self._head(s, "Decision log", y, "T: type a scenario (beta)")
+        y += 18
+        lines = []
+        for e in self.sim.events[-8:]:
+            lines += self._wrap(e, self.f["tiny"], CW)
+        room = (H - 6 - y) // 15
+        for k, line in enumerate(lines[-room:]):
+            newest = k == len(lines[-room:]) - 1
+            s.blit(self.f["tiny"].render(line, True, TEXT if newest else DIM), (X0, y))
+            y += 15
+
+    def _draw_prompt(self, s):
+        rect = pygame.Rect(12, H - 62, MAP_W - 24, 50)
+        pygame.draw.rect(s, (24, 28, 37), rect, border_radius=10)
+        pygame.draw.rect(s, ACCENT, rect, 2, border_radius=10)
+        s.blit(self.f["tiny"].render("Describe a scenario (beta)  -  Enter to run, Esc to cancel", True, DIM),
+               (rect.x + 12, rect.y + 6))
+        line = self._wrap(self.buffer + "_", self.f["body"], rect.w - 24)[-1]
+        s.blit(self.f["body"].render(line, True, TEXT), (rect.x + 12, rect.y + 23))
+
+    @staticmethod
+    def _wrap(text, font, width):
+        lines, line = [], ""
+        for word in text.split(" "):
+            trial = f"{line} {word}".strip()
+            if font.size(trial)[0] > width and line:
+                lines.append(line)
+                line = word
             else:
                 line = trial
-        s.blit(self.font.render(line, True, color), (x, y))
-        return y + 19
+        return lines + [line]
 
-    # ---- main loop -----------------------------------------------------
-    def handle(self, event):
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                self.paused = not self.paused
-            elif event.key in (pygame.K_EQUALS, pygame.K_PLUS, pygame.K_KP_PLUS):
-                self.time_scale = min(8, self.time_scale * 2)
-            elif event.key in (pygame.K_MINUS, pygame.K_KP_MINUS):
-                self.time_scale = max(0.25, self.time_scale / 2)
-            elif event.key == pygame.K_r:
-                self.reset()
-            elif event.key == pygame.K_ESCAPE:
-                return False
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            node = self.node_at(event.pos)
-            if node:
-                self.spawn_incident(node)
-        return event.type != pygame.QUIT
+    # ---- main loop ---------------------------------------------------
+    def step(self, dt):
+        if not self.paused:
+            self.sim.step(BASE_SPEED_KMPS * self.speed * min(dt, 0.1) / AVG_SPEED_KMH)
 
     def run(self):
         running = True

@@ -18,8 +18,10 @@ def haversine(c1, c2):
 class CityGraph:
     """Weighted undirected road graph. Closed roads are invisible to search."""
 
-    def __init__(self, coords, roads):
+    def __init__(self, coords, roads, tags=None, depot=None):
         self.coords = dict(coords)
+        self.depot = depot or next(iter(self.coords))      # where every vehicle is stationed
+        self.tags = {n: set((tags or {}).get(n, ())) for n in self.coords}  # facilities per city
         self.roads = {}
         self._adj = {n: [] for n in self.coords}
         for r in roads:
@@ -32,7 +34,8 @@ class CityGraph:
         data = json.loads(Path(path).read_text())
         coords = {n: (c["lat"], c["lon"]) for n, c in data["cities"].items()}
         roads = [Road(a, b, d) for a, b, d in data["roads"]]
-        graph = cls(coords, roads)
+        tags = {n: c.get("tags", ()) for n, c in data["cities"].items()}
+        graph = cls(coords, roads, tags, data.get("depot"))
         graph.validate()
         return graph
 

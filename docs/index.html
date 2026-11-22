@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aegis: Emergency Response Simulation</title>
+<meta name="description" content="AI-based multi-agent emergency response simulation over 14 north-Indian cities.">
+<style>
+  :root {
+    --bg: #f7f8fa; --fg: #1d2330; --muted: #5b6475; --card: #ffffff;
+    --accent: #1f6feb; --border: #dde1e8; --code: #eef1f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1419; --fg: #e6e9ef; --muted: #9aa4b2; --card: #171d25;
+      --accent: #6ea8ff; --border: #2a3340; --code: #1e2630;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1419; --fg: #e6e9ef; --muted: #9aa4b2; --card: #171d25;
+    --accent: #6ea8ff; --border: #2a3340; --code: #1e2630;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+  header { padding: 48px 0 24px; border-bottom: 1px solid var(--border); }
+  h1 { margin: 0 0 8px; font-size: 2.2rem; }
+  h2 { margin: 40px 0 12px; font-size: 1.5rem; }
+  h3 { margin: 24px 0 8px; font-size: 1.1rem; }
+  p, li { color: var(--fg); }
+  .lead { color: var(--muted); font-size: 1.1rem; margin: 0 0 16px; }
+  .links a, a { color: var(--accent); }
+  .links a { margin-right: 16px; font-weight: 600; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 20px; margin: 12px 0;
+  }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .stat { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+  .muted { color: var(--muted); font-size: 0.95rem; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); background: #fff; }
+  figure { margin: 16px 0; }
+  figcaption { color: var(--muted); font-size: 0.9rem; margin-top: 6px; }
+  pre {
+    background: var(--code); border-radius: 8px; padding: 12px 14px; overflow-x: auto;
+    font: 0.9rem/1.5 ui-monospace, Consolas, monospace;
+  }
+  code { font-family: ui-monospace, Consolas, monospace; font-size: 0.92em; }
+  footer { margin: 48px 0 24px; color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--border); padding-top: 16px; }
+  @media (max-width: 600px) {
+    h1 { font-size: 1.7rem; }
+    table { font-size: 0.85rem; }
+    th, td { padding: 6px; }
+  }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>Aegis</h1>
+  <p class="lead">An AI-based multi-agent emergency response simulation over 14 north-Indian cities.
+  Fire trucks, ambulances and police race search algorithms to reach incidents, then recover when
+  roads close or vehicles break down.</p>
+  <div class="links">
+    <a href="https://github.com/vkamboj07/Aegis">Source on GitHub</a>
+    <a href="#results">Results</a>
+    <a href="#run">Run it</a>
+  </div>
+</header>
+
+<section>
+  <h2>What it does</h2>
+  <ul>
+    <li>Every vehicle is stationed at one base (Delhi): 2 fire trucks, 2 ambulances, 1 police.</li>
+    <li>For each trip the vehicle runs BFS, DFS, UCS and A* and drives the best route. The other
+        three routes run as faded ghost vehicles, so the comparison is visible.</li>
+    <li>When several incidents are open, they are ranked by urgency (severity &times; people
+        affected &divide; hours waiting). A constraint solver assigns compatible vehicles.</li>
+    <li>Road closures and vehicle breakdowns trigger replanning. An incident that can no longer be
+        served goes back to the allocator.</li>
+    <li>A rule engine (facility tags such as hospitals and fuel depots) and an escalation rule
+        (+1 severity per 2 h unresolved) shape priorities over time.</li>
+  </ul>
+</section>
+
+<section id="results">
+  <h2>Results</h2>
+  <p>Numbers from <code>python main.py --analyze</code>, which runs every scenario and benchmarks all
+  182 city pairs.</p>
+  <div class="grid">
+    <div class="card"><div class="stat">100%</div><div class="muted">UCS and A* find the shortest route (182 pairs)</div></div>
+    <div class="card"><div class="stat">76%</div><div class="muted">BFS finds the shortest route</div></div>
+    <div class="card"><div class="stat">62%</div><div class="muted">DFS finds the shortest route</div></div>
+    <div class="card"><div class="stat">4/4</div><div class="muted">showcase incidents resolved (about 12 h)</div></div>
+  </div>
+
+  <figure>
+    <img src="img/algorithm_distance.png" alt="Bar chart of route distance by algorithm">
+    <figcaption>Average route distance by algorithm across all city pairs.</figcaption>
+  </figure>
+  <figure>
+    <img src="img/algorithm_nodes.png" alt="Bar chart of nodes expanded by algorithm">
+    <figcaption>Nodes expanded by each search. A* and UCS search far fewer nodes than DFS on the same routes.</figcaption>
+  </figure>
+  <figure>
+    <img src="img/response_time.png" alt="Response time per scenario">
+    <figcaption>Response time over each scripted scenario.</figcaption>
+  </figure>
+  <figure>
+    <img src="img/scenario_resolution.png" alt="Incidents resolved per scenario">
+    <figcaption>Incidents resolved per scenario.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>What it does not do</h2>
+  <table>
+    <thead><tr><th>Topic</th><th>What is built</th><th>Limitation</th></tr></thead>
+    <tbody>
+      <tr><td>Planning</td><td>Escalation: +1 severity per 2 h unresolved, then re-allocate</td><td>Not a Markov decision process</td></tr>
+      <tr><td>Allocation</td><td>Backtracking, forward checking, branch-and-bound</td><td>Never pulls a vehicle off a job it is on</td></tr>
+      <tr><td>Map</td><td>14 cities, 21 roads, constant 60 km/h</td><td>No traffic model; layout is schematic</td></tr>
+      <tr><td>Language input</td><td>Keyword and regex parser; optional LLM fallback</td><td>Not the main input; the LLM is off by default</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">This web page is a project overview. The interactive Pygame control centre runs on your own machine.</p>
+</section>
+
+<section id="run">
+  <h2>Run it locally</h2>
+  <pre>pip install -r requirements.txt
+python main.py                         # control centre (map + control panel)
+python main.py --compare Delhi Kota    # algorithm comparison for one route
+python main.py --analyze               # scenarios + benchmark -&gt; results/
+python -m unittest discover -s tests   # tests</pre>
+</section>
+
+<footer>
+  Aegis is a course project for CSE3705 Artificial Intelligence. Source code and documentation:
+  <a href="https://github.com/vkamboj07/Aegis">github.com/vkamboj07/Aegis</a>.
+</footer>
+</main>
+</body>
+</html>
