@@ -1,9 +1,9 @@
 import itertools
 import unittest
 
-from ai.logic import (RULE_CLAUSES, explain, incident_facts, kb_clauses, prove, refute)
-from ai.rules import RULES
-from environment.incidents import Incident
+from aegis.core.ai.logic import (RULE_CLAUSES, explain, incident_facts, kb_clauses, prove, refute)
+from aegis.core.ai.rules import RULES
+from aegis.core.environment.incidents import Incident
 
 UNIVERSE = {"Fire", "Medical", "Accident", "FuelDepot", "Hospital", "TouristHub",
             "People100", "People60"}

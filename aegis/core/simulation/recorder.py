@@ -1,8 +1,12 @@
 """CSV export / import of simulation records and algorithm benchmarks."""
 import csv
+import os
 from pathlib import Path
 
-RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
+# Written output lives outside the package so a read-only or containerised
+# install can redirect it: AEGIS_RESULTS_DIR=/data/results
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+RESULTS_DIR = Path(os.environ.get("AEGIS_RESULTS_DIR") or PROJECT_ROOT / "results")
 
 SIM_FIELDS = ["scenario", "time_h", "event", "incident", "incident_type", "location",
               "severity", "vehicle", "algorithm", "distance_km", "nodes_expanded",

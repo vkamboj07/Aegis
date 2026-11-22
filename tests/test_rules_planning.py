@@ -4,11 +4,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from ai.planning import ESCALATE_EVERY_H, escalate
-from ai.rules import apply_rules
-from environment.city import CityGraph
-from environment.incidents import Incident
-from simulation.engine import Simulation
+from aegis.core.ai.planning import ESCALATE_EVERY_H, escalate
+from aegis.core.ai.rules import apply_rules
+from aegis.core.environment.city import CityGraph
+from aegis.core.environment.incidents import Incident
+from aegis.core.simulation.engine import Simulation
 
 
 class RuleTests(unittest.TestCase):

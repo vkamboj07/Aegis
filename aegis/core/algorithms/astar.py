@@ -2,20 +2,20 @@ import heapq
 import time
 from itertools import count
 
-from algorithms.bfs import rebuild
+from aegis.core.algorithms.bfs import rebuild
 
 
 def search(graph, start, goal):
-    """Uniform-cost search: optimal distance, no heuristic guidance."""
+    """A*: UCS guided by straight-line distance to the goal."""
     t0 = time.perf_counter()
     tie = count()
-    frontier = [(0.0, next(tie), start)]
+    frontier = [(graph.heuristic(start, goal), next(tie), 0.0, start)]
     parent = {start: None}
     best = {start: 0.0}
     done = set()
     expanded = 0
     while frontier:
-        g, _, node = heapq.heappop(frontier)
+        _, _, g, node = heapq.heappop(frontier)
         if node in done:
             continue
         done.add(node)
@@ -27,5 +27,6 @@ def search(graph, start, goal):
             if ng < best.get(nbr, float("inf")):
                 best[nbr] = ng
                 parent[nbr] = node
-                heapq.heappush(frontier, (ng, next(tie), nbr))
+                heapq.heappush(
+                    frontier, (ng + graph.heuristic(nbr, goal), next(tie), ng, nbr))
     return [], float("inf"), expanded, time.perf_counter() - t0

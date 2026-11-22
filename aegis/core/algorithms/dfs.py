@@ -1,6 +1,6 @@
 import time
 
-from algorithms.bfs import rebuild
+from aegis.core.algorithms.bfs import rebuild
 
 
 def search(graph, start, goal):

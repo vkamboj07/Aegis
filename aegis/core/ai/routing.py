@@ -1,5 +1,5 @@
 """Run every search algorithm on the same trip and pick the route to drive."""
-from algorithms import ALGORITHMS
+from aegis.core.algorithms import ALGORITHMS
 
 PREFERENCE = ["A*", "UCS", "BFS", "DFS"]    # tie-break when distance and effort are equal
 

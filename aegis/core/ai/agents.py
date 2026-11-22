@@ -1,5 +1,5 @@
 """Vehicle agents: each simulation tick every vehicle runs perceive -> decide -> act."""
-from ai.routing import plan_routes
+from aegis.core.ai.routing import plan_routes
 
 
 class VehicleAgent:

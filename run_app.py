@@ -35,8 +35,8 @@ def main(argv):
         print("Run:  python run_app.py --install   (or: python -m pip install -r requirements.txt)")
         return 1
     sys.path.insert(0, str(ROOT))
-    from environment.city import CityGraph
-    from visualization.pygame_ui import App
+    from aegis.core.environment.city import CityGraph
+    from aegis.desktop.pygame_ui import App
     App(CityGraph.load(), use_llm=False).run()
     return 0
 

@@ -1,6 +1,6 @@
 import unittest
 
-from simulation.fairness import fairness_rows, summary
+from aegis.core.simulation.fairness import fairness_rows, summary
 
 
 class FairnessTests(unittest.TestCase):

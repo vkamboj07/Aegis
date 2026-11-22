@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AEGIS Control Centre</title>
+<meta name="description" content="AI-based multi-agent emergency response simulation: route racing, CSP allocation, knowledge rules and replanning over 14 north-Indian cities.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🚒</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="boot" class="boot">
+  <div class="boot-card">
+    <h1>AEGIS</h1>
+    <p id="boot-msg">Starting a simulation…</p>
+    <button id="boot-retry" class="btn primary" hidden>Try again</button>
+  </div>
+</div>
+
+<main id="app" hidden>
+  <!-- ---- map ------------------------------------------------------ -->
+  <section class="map-pane">
+    <div id="tiles" class="tiles"></div>
+    <canvas id="map" aria-label="Emergency response map"></canvas>
+
+    <div id="race-card" class="card race" hidden>
+      <h2 id="race-title">Route race</h2>
+      <table><thead><tr>
+        <th>Algo</th><th>Distance</th><th>Hops</th><th>Expanded</th><th>Result</th>
+      </tr></thead><tbody id="race-rows"></tbody></table>
+      <p class="hint">All four searches run for every trip; the vehicle drives the
+        best route and the others race it as ghosts.</p>
+    </div>
+
+    <div class="map-legend card">
+      <span class="key"><i class="swatch road"></i>highway</span>
+      <span class="key"><i class="swatch closed"></i>closed</span>
+      <span class="key"><i class="swatch active"></i>waiting</span>
+      <span class="key"><i class="swatch assigned"></i>assigned</span>
+      <span class="key" id="legend-algos"></span>
+    </div>
+
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+    <p class="map-hint">Click a city to select it · click a vehicle to select it ·
+      right-click a road to close or reopen it</p>
+    <div id="tooltip" class="tooltip" hidden></div>
+  </section>
+
+  <!-- ---- control panel ------------------------------------------- -->
+  <aside class="panel">
+    <header class="panel-head">
+      <div>
+        <h1>AEGIS Control Centre</h1>
+        <p class="subtitle">CSE3705 Artificial Intelligence · multi-agent emergency response</p>
+      </div>
+      <div class="head-right">
+        <span id="clock" class="clock">t = 0.0 h</span>
+        <button id="topics-open" class="btn small primary" type="button">Course topics</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h2>Describe an emergency</h2>
+      <form id="scenario-form" class="row">
+        <input id="scenario" class="grow" type="text" maxlength="240" autocomplete="off"
+               placeholder="e.g. Fire in Jaipur, 200 people affected. At 2 hours the Jaipur-Ajmer road closes.">
+        <button id="scenario-preview" class="btn" type="button">Preview</button>
+        <button class="btn primary" type="submit">Simulate</button>
+      </form>
+      <div class="examples">
+        <button class="chip" type="button" data-example="Fire in Jaipur, 200 people affected. At 2 hours the Jaipur-Ajmer road closes.">Fire in Jaipur + road closure</button>
+        <button class="chip" type="button" data-example="Medical emergency in Kota with 120 people. At 1 hour the Kota-Gwalior road closes.">Mass-casualty medical in Kota</button>
+        <button class="chip" type="button" data-example="Accident at a tourist hub in Agra, 30 people at 3 hours.">Accident in Agra at 3 h</button>
+      </div>
+      <div id="scenario-preview-out" class="preview" hidden></div>
+    </section>
+
+    <section>
+      <h2>1 · Report an incident</h2>
+      <div class="grid2">
+        <label>Type<select id="kind"></select></label>
+        <label>Severity <output id="sev-out">3</output>
+          <input id="severity" type="range" min="1" max="5" step="1" value="3"></label>
+        <label>Location<select id="location"></select></label>
+        <label>People <output id="ppl-out">40</output>
+          <input id="people" type="range" min="10" max="500" step="10" value="40"></label>
+      </div>
+      <div class="row">
+        <button id="report" class="btn primary">Report now</button>
+        <button id="stage" class="btn">Add to batch</button>
+        <button id="dispatch" class="btn ok" disabled>Dispatch batch (0)</button>
+        <button id="clear-batch" class="btn small" disabled>Clear</button>
+      </div>
+      <p id="batch-line" class="hint">Batch empty — incidents added here are
+        reported together, so the CSP ranks them against each other.</p>
+    </section>
+
+    <section>
+      <h2>2 · Disruptions</h2>
+      <div class="row">
+        <select id="road" class="grow"></select>
+        <button id="toggle-road" class="btn danger">Close road</button>
+      </div>
+      <div class="row">
+        <select id="vehicle" class="grow"></select>
+        <button id="breakdown" class="btn danger" disabled>Break down</button>
+      </div>
+      <div class="row">
+        <button id="random" class="btn">Random disruptions: OFF</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>3 · Simulation</h2>
+      <div class="row">
+        <button id="pause" class="btn">Pause</button>
+        <button id="slower" class="btn small">−</button>
+        <output id="speed-out" class="speed">1x</output>
+        <button id="faster" class="btn small">+</button>
+        <button id="reset" class="btn">Reset</button>
+        <button id="demo" class="btn primary">Run demo</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Priority order <span class="note">urgency = severity × people / hours waiting</span></h2>
+      <ol id="queue" class="queue"><li class="empty">No open incidents.</li></ol>
+    </section>
+
+    <section>
+      <h2>Fleet <span class="note" id="base-note"></span></h2>
+      <ul id="fleet" class="fleet"></ul>
+    </section>
+
+    <section class="log-section">
+      <h2>Decision log <span class="note" id="csp-note"></span></h2>
+      <ul id="log" class="log"></ul>
+    </section>
+  </aside>
+</main>
+
+<dialog id="topics" class="topics">
+  <header class="topics-head">
+    <div>
+      <h2>How this project covers the CSE3705 handout</h2>
+      <p class="subtitle">Built topics run live in this simulation. Planned topics are shown as they are, not as finished work.</p>
+    </div>
+    <button id="topics-close" class="btn small" type="button">Close</button>
+  </header>
+  <div id="topics-body" class="topics-body"></div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

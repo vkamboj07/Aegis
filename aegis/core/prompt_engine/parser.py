@@ -19,7 +19,7 @@ the previous incident ("Fire in Jaipur, 200 people affected").
 import re
 from dataclasses import dataclass, field
 
-from ai.rules import MAX_SEVERITY
+from aegis.core.ai.rules import MAX_SEVERITY
 
 INCIDENT_TYPES = ("Fire", "Accident", "Medical")
 EVENT_KINDS = ("new_incident", "road_closure", "road_reopen")

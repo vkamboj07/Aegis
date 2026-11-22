@@ -4,11 +4,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from ai.heuristics import rank, urgency
-from ai.routing import plan_routes
-from environment.city import CityGraph
-from environment.incidents import Incident
-from simulation.engine import ON_SCENE_H, REPAIR_H, Simulation
+from aegis.core.ai.heuristics import rank, urgency
+from aegis.core.ai.routing import plan_routes
+from aegis.core.environment.city import CityGraph
+from aegis.core.environment.incidents import Incident
+from aegis.core.simulation.engine import ON_SCENE_H, REPAIR_H, Simulation
 
 
 def run(sim, hours, dt=0.05):

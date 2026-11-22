@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from ai.csp import allocate
+from aegis.core.ai.csp import allocate
 
 
 def costs(table):

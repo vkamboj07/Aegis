@@ -6,10 +6,10 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 import pygame
 
-from environment.city import CityGraph
-from simulation.engine import Simulation
-from visualization.map_view import MapView
-from visualization.pygame_ui import App
+from aegis.core.environment.city import CityGraph
+from aegis.core.simulation.engine import Simulation
+from aegis.desktop.map_view import MapView
+from aegis.desktop.pygame_ui import App
 
 
 class HoverTests(unittest.TestCase):

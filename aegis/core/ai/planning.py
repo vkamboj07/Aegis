@@ -4,7 +4,7 @@ Deliberately simple (not an MDP): predict that severity rises by one level
 for every ESCALATE_EVERY_H hours an incident stays unresolved, apply that
 prediction, and let the caller re-rank the queue / re-run allocation.
 """
-from ai.rules import MAX_SEVERITY
+from aegis.core.ai.rules import MAX_SEVERITY
 
 ESCALATE_EVERY_H = 2.0
 

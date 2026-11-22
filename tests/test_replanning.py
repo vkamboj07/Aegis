@@ -4,9 +4,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from environment.city import CityGraph
-from environment.events import EventQueue
-from simulation.engine import Simulation
+from aegis.core.environment.city import CityGraph
+from aegis.core.environment.events import EventQueue
+from aegis.core.simulation.engine import Simulation
 
 
 def run(sim, hours, dt=0.05):

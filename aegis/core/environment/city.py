@@ -2,7 +2,7 @@ import json
 import math
 from pathlib import Path
 
-from environment.roads import Road
+from aegis.core.environment.roads import Road
 
 DEFAULT_DATA = Path(__file__).resolve().parent.parent / "data" / "cities.json"
 

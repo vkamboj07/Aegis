@@ -1,16 +1,22 @@
 """Map rendering: an atlas-style background (terrain, rivers, hills, states),
 highways, cities with facility badges, the base, incidents, vehicles and
-their route race (faded ghost trucks driving the other algorithms' routes)."""
+their route race (faded ghost trucks driving the other algorithms' routes).
+
+The projection, the scenery coordinates and the rules for where a vehicle sits
+on a road come from aegis.core.geo, which the browser front end uses too, so
+both control centres draw the same map.
+"""
 import math
 import random
 
 import pygame
 
-from ai.routing import PREFERENCE
-from environment.vehicles import KINDS
+from aegis.core.ai.routing import PREFERENCE
+from aegis.core.environment.vehicles import KINDS
+from aegis.core import geo
 
-MAP_W, H = 800, 720
-PAD_X, PAD_Y = 70, 60
+MAP_W, H = geo.MAP_W, geo.MAP_H
+PAD_X, PAD_Y = geo.PAD_X, geo.PAD_Y
 
 LAND, LAND_DOT, GRID = (236, 231, 217), (226, 219, 202), (223, 216, 199)
 WATER, WATER_EDGE = (154, 198, 226), (112, 164, 204)
@@ -19,25 +25,12 @@ ROAD_CASE, ROAD_FILL = (176, 146, 84), (246, 212, 118)
 CLOSED_CASE, CLOSED_FILL = (130, 20, 20), (214, 58, 58)
 INK, INK_SOFT, WHITE = (40, 40, 50), (112, 106, 94), (255, 255, 255)
 SELECT = (0, 150, 210)
-STATUS = {"active": (214, 45, 45), "assigned": (226, 140, 0), "resolved": (40, 160, 90)}
-ALGO_COLOR = {"A*": (37, 110, 214), "UCS": (20, 150, 100), "BFS": (110, 84, 214), "DFS": (210, 70, 145)}
-GHOST_OFFSET = {"UCS": 7, "BFS": -7, "DFS": 13}      # px beside the real truck
-
-# rough geography (lat, lon), drawn only as scenery
-RIVERS = {
-    "Yamuna": [(30.6, 77.6), (30.1, 77.35), (29.45, 77.12), (28.9, 77.2), (28.62, 77.27),
-               (28.35, 77.38), (27.95, 77.55), (27.55, 77.68), (27.3, 77.85), (27.17, 78.03),
-               (26.95, 78.4)],
-    "Chambal": [(24.9, 75.6), (25.18, 75.84), (25.55, 76.35), (25.95, 76.85), (26.35, 77.4),
-                (26.62, 77.9), (26.75, 78.35)],
-}
-ARAVALLI = [(28.45, 77.08), (28.05, 76.75), (27.6, 76.45), (27.15, 76.05), (26.75, 75.45),
-            (26.45, 74.95), (26.0, 74.4)]
-STATES = [("HARYANA", 29.75, 76.25), ("RAJASTHAN", 27.95, 75.4),
-          ("UTTAR PRADESH", 28.12, 77.85)]
-MAJOR = {"Delhi": 11, "Jaipur": 9, "Agra": 9, "Chandigarh": 9}
-LABEL_SIDE = {"Delhi": "top", "Gurugram": "left", "Faridabad": "right", "Meerut": "right",
-              "Panipat": "left", "Mathura": "right", "Bharatpur": "left", "Agra": "right"}
+STATUS = geo.STATUS_COLOR
+ALGO_COLOR = geo.ALGO_COLOR
+GHOST_OFFSET = geo.GHOST_OFFSET
+RIVERS, ARAVALLI, STATES = geo.RIVERS, geo.ARAVALLI, geo.STATES
+MAJOR, LABEL_SIDE = geo.MAJOR, geo.LABEL_SIDE
+offset = geo.offset
 
 
 def dashed(s, color, a, b, width=2, dash=9, gap=6):
@@ -52,14 +45,6 @@ def dashed(s, color, a, b, width=2, dash=9, gap=6):
         d = e + gap
 
 
-def offset(a, b, px):
-    """Shift the segment a-b sideways by px (for parallel lanes)."""
-    dx, dy = b[0] - a[0], b[1] - a[1]
-    n = math.hypot(dx, dy) or 1
-    ox, oy = -dy / n * px, dx / n * px
-    return (a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy)
-
-
 def shade(color, k):
     return tuple(max(0, min(255, int(c * k))) for c in color)
 
@@ -67,27 +52,14 @@ def shade(color, k):
 class MapView:
     def __init__(self, graph, fonts):
         self.graph, self.f = graph, fonts
-        self._init_projection()
-        self.pos = {n: self.project(*c) for n, c in graph.coords.items()}
+        self.proj = geo.Projection(graph.coords)
+        self.pos = self.proj.pos
+        self.project = self.proj.project
         self._labels, self._sprites = {}, {}
         self.background = self._render_background()
-        dx, dy = self.pos[graph.depot]
-        self.base_rect = pygame.Rect(dx - 205, dy - 66, 160, 50)
+        self.base_rect = pygame.Rect(*self.proj.base_rect(graph.depot))
 
-    # ---- geometry ------------------------------------------------------
-    def _init_projection(self):
-        lats = [c[0] for c in self.graph.coords.values()]
-        lons = [c[1] for c in self.graph.coords.values()]
-        self._lat_max, self._lon_min = max(lats), min(lons)
-        self._kx = math.cos(math.radians(sum(lats) / len(lats)))
-        # schematic: x and y scaled independently so the Delhi cluster gets room
-        self._sx = (MAP_W - 2 * PAD_X) / ((max(lons) - min(lons)) * self._kx)
-        self._sy = (H - 2 * PAD_Y) / (max(lats) - min(lats))
-
-    def project(self, lat, lon):
-        return (PAD_X + (lon - self._lon_min) * self._kx * self._sx,
-                PAD_Y + (self._lat_max - lat) * self._sy)
-
+    # ---- geometry (the maths lives in aegis.core.geo) -------------------
     def node_at(self, p, radius=16):
         hits = [(math.dist(p, q), n) for n, q in self.pos.items() if math.dist(p, q) <= radius]
         return min(hits)[1] if hits else None
@@ -123,42 +95,17 @@ class MapView:
 
     def point_on(self, path, km):
         """(x, y, heading degrees) km along a path of city names."""
-        for a, b in zip(path, path[1:]):
-            dist = self.graph.road(a, b).distance
-            if km <= dist:
-                return self._lerp(a, b, km / dist)
-            km -= dist
-        x, y = self.pos[path[-1]]
-        return x, y, 0.0
+        return self.proj.point_on(self.graph, path, km)
 
     def _lerp(self, a, b, t):
-        (ax, ay), (bx, by) = self.pos[a], self.pos[b]
-        return ax + (bx - ax) * t, ay + (by - ay) * t, math.degrees(math.atan2(by - ay, bx - ax))
+        return self.proj.lerp(a, b, t)
 
     def remaining_km(self, v):
-        if not v.moving or len(v.path) < 2:
-            return 0.0
-        if v.backtrack:
-            return v.seg_progress
-        rest = sum(self.graph.road(a, b).distance for a, b in zip(v.path[v.seg:], v.path[v.seg + 1:]))
-        return rest - v.seg_progress
+        return geo.remaining_km(self.graph, v)
 
     def vehicle_pose(self, i, v, sim):
         """(x, y, heading) for a vehicle, whatever its state."""
-        on_road = v.path and v.seg < len(v.path) - 1 and (v.moving or v.status == "broken")
-        if on_road:
-            a, b = v.path[v.seg], v.path[v.seg + 1]
-            t = v.seg_progress / self.graph.road(a, b).distance
-            x, y, ang = self._lerp(a, b, t)
-            (ox, oy), _ = offset(self.pos[a], self.pos[b], (i - 2) * 3)
-            x, y = x + ox - self.pos[a][0], y + oy - self.pos[a][1]
-            return x, y, ang + (180 if v.backtrack else 0)
-        if v.status == "idle" and v.location == sim.depot:
-            slot = [u for u in sim.fleet if u.status == "idle" and u.location == sim.depot].index(v)
-            return self.base_rect.x + 22 + slot * 29, self.base_rect.y + 33, 0.0
-        x, y = self.pos[v.location]
-        ang = math.radians(200 + 50 * i)
-        return x + 24 * math.cos(ang), y + 24 * math.sin(ang), 0.0
+        return self.proj.vehicle_pose(self.graph, i, v, sim.fleet, sim.depot)
 
     # ---- static background --------------------------------------------
     def _render_background(self):
@@ -178,7 +125,7 @@ class MapView:
             pygame.draw.line(s, GRID, (x, 0), (x, H))
             s.blit(tiny.render(f"{lon}°E", True, STATE), (x + 3, H - 15))
         hills = pygame.Surface((MAP_W, H), pygame.SRCALPHA)
-        pts = [self.project(*p) for p in ARAVALLI]
+        pts = self.proj.line(ARAVALLI)
         for width, alpha in ((58, 55), (34, 80)):
             pygame.draw.lines(hills, (*HILLS, alpha), False, pts, width)
             for p in pts:
@@ -186,7 +133,7 @@ class MapView:
         s.blit(hills, (0, 0))
         self._along(s, "Aravalli Range", pts[3], pts[4], INK_SOFT, -22)
         for name, coords in RIVERS.items():
-            pts = [self.project(*p) for p in coords]
+            pts = self.proj.line(coords)
             pygame.draw.lines(s, WATER_EDGE, False, pts, 6)
             pygame.draw.lines(s, WATER, False, pts, 4)
             for p in pts:
@@ -374,10 +321,7 @@ class MapView:
             for g in race.ghosts:
                 if g.arrived_at is not None or len(g.path) < 2:
                     continue
-                x, y, ang = self.point_on(g.path, g.km)
-                seg = self._segment_at(g.path, g.km)
-                (ox, oy), _ = offset(self.pos[seg[0]], self.pos[seg[1]], GHOST_OFFSET[g.algorithm])
-                x, y = x + ox - self.pos[seg[0]][0], y + oy - self.pos[seg[0]][1]
+                x, y, ang = self.proj.ghost_pose(self.graph, g)
                 kind = sim.vehicle(race.vehicle).kind
                 spr = self.sprite(kind, ang, g.algorithm)
                 s.blit(spr, spr.get_rect(center=(x, y)))
@@ -385,14 +329,6 @@ class MapView:
                 rect = tag.get_rect(midbottom=(x, y - 11)).inflate(6, 2)
                 pygame.draw.rect(s, ALGO_COLOR[g.algorithm], rect, border_radius=4)
                 s.blit(tag, tag.get_rect(center=rect.center))
-
-    def _segment_at(self, path, km):
-        for a, b in zip(path, path[1:]):
-            d = self.graph.road(a, b).distance
-            if km <= d:
-                return a, b
-            km -= d
-        return path[-2], path[-1]
 
     def draw_vehicles(self, s, sim, selected):
         for i, v in enumerate(sim.fleet):

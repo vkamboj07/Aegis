@@ -1,9 +1,9 @@
 """Natural-language text -> structured scenario (JSON) -> simulation event queue."""
 import json
 
-from environment.events import DEFAULT_SCENARIOS
-from prompt_engine.llm import parse_with_llm
-from prompt_engine.parser import parse
+from aegis.core.environment.events import DEFAULT_SCENARIOS
+from aegis.core.prompt_engine.llm import parse_with_llm
+from aegis.core.prompt_engine.parser import parse
 
 
 def build_scenario(text, graph, use_llm=False, client=None):

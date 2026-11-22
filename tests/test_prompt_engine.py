@@ -7,11 +7,11 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from environment.city import CityGraph
-from prompt_engine.llm import parse_with_llm
-from prompt_engine.parser import parse, validate_events
-from prompt_engine.scenario_generator import build_scenario, save_scenario, schedule
-from simulation.engine import Simulation
+from aegis.core.environment.city import CityGraph
+from aegis.core.prompt_engine.llm import parse_with_llm
+from aegis.core.prompt_engine.parser import parse, validate_events
+from aegis.core.prompt_engine.scenario_generator import build_scenario, save_scenario, schedule
+from aegis.core.simulation.engine import Simulation
 
 
 def run(text):

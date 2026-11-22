@@ -9,9 +9,9 @@ It measures how much a city's location alone changes the service it gets.
 """
 import statistics
 
-from algorithms import ALGORITHMS
-from environment.city import CityGraph
-from simulation.engine import Simulation
+from aegis.core.algorithms import ALGORITHMS
+from aegis.core.environment.city import CityGraph
+from aegis.core.simulation.engine import Simulation
 
 FLAG_RATIO = 1.5    # a city is flagged when its response is this many times the median
 MAX_HOURS = 72.0

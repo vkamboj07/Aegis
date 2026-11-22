@@ -8,16 +8,16 @@ After a job the vehicle spends some time on scene, then drives back to base.
 import math
 import random
 
-from ai.agents import VehicleAgent
-from ai.csp import allocate
-from ai.heuristics import rank, urgency
-from ai.planning import escalate
-from ai.routing import plan_routes
-from ai.rules import apply_rules
-from environment.events import EventQueue
-from environment.incidents import Incident
-from environment.vehicles import default_fleet
-from simulation.race import Race
+from aegis.core.ai.agents import VehicleAgent
+from aegis.core.ai.csp import allocate
+from aegis.core.ai.heuristics import rank, urgency
+from aegis.core.ai.planning import escalate
+from aegis.core.ai.routing import plan_routes
+from aegis.core.ai.rules import apply_rules
+from aegis.core.environment.events import EventQueue
+from aegis.core.environment.incidents import Incident
+from aegis.core.environment.vehicles import default_fleet
+from aegis.core.simulation.race import Race
 
 AVG_SPEED_KMH = 60
 ON_SCENE_H = 1.0        # time spent at an incident before driving back to base

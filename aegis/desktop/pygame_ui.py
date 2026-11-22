@@ -6,12 +6,14 @@ breakdowns, random events) and shows the priority order, the fleet and the
 decision log."""
 import pygame
 
-from ai.heuristics import urgency
-from prompt_engine.parser import describe
-from prompt_engine.scenario_generator import build_scenario, schedule
-from simulation.engine import AVG_SPEED_KMH, Simulation
-from visualization.map_view import MAP_W, MapView
-from visualization.widgets import Button, Cycler, Stepper
+from aegis.core import report
+from aegis.core.ai.heuristics import urgency
+from aegis.core.clock import SPEEDS, sim_hours, slices
+from aegis.core.prompt_engine.parser import describe
+from aegis.core.prompt_engine.scenario_generator import build_scenario, schedule
+from aegis.core.simulation.engine import Simulation
+from aegis.desktop.map_view import MAP_W, MapView
+from aegis.desktop.widgets import Button, Cycler, Stepper
 
 W, H = 1280, 720
 PX, PANEL_W = MAP_W, W - MAP_W
@@ -19,8 +21,6 @@ X0, CW = PX + 16, PANEL_W - 32
 PANEL_BG, SECTION, RULE = (24, 28, 37), (32, 37, 49), (52, 58, 74)
 TEXT, DIM, ACCENT = (232, 235, 242), (150, 158, 175), (110, 175, 255)
 RED, AMBER, GREEN = (236, 90, 90), (240, 170, 60), (90, 200, 130)
-BASE_SPEED_KMPS = 110           # simulated km covered per real second at 1x
-SPEEDS = [0.25, 0.5, 1, 2, 4, 8]
 INCIDENT_TYPES = ["Fire", "Accident", "Medical"]
 DEMO = "showcase"
 HIGHLIGHT_MS = 5000             # a road / vehicle picked in the panel stays highlighted this long
@@ -432,23 +432,12 @@ class App:
             s.blit(self.f["small"].render(text, True, color), (X0 + 136, y))
             y += 19
 
+    LEVEL_COLOR = {"quiet": DIM, "active": ACCENT, "good": GREEN, "warn": AMBER, "bad": RED}
+
     def _status(self, v):
-        now = self.sim.now
-        if v.status == "idle":
-            return ("At base" if v.location == self.sim.depot else f"Idle at {v.location}"), DIM
-        if v.status == "dispatched":
-            if v.backtrack:
-                how = f"turning back to {v.path[v.seg]}"
-            elif v.pending:
-                how = f"new route from {v.path[v.seg + 1]}"
-            else:
-                how = f"{v.algorithm} · {self.map.remaining_km(v):.0f} km left"
-            return f"To {v.target} · {how}", ACCENT
-        if v.status == "on_scene":
-            return f"On scene at {v.location} · {max(0, v.until - now):.1f} h", GREEN
-        if v.status == "returning":
-            return f"Returning to base · {self.map.remaining_km(v):.0f} km", DIM
-        return f"BROKEN DOWN · repaired in {max(0, v.until - now):.1f} h", RED
+        """The shared sentence from aegis.core.report, in this UI's palette."""
+        text, level = report.vehicle_status(self.sim, v)
+        return text, self.LEVEL_COLOR[level]
 
     def _draw_log(self, s, y):
         self._head(s, "Decision log", y, "T: type a scenario (beta)")
@@ -485,8 +474,10 @@ class App:
 
     # ---- main loop ---------------------------------------------------
     def step(self, dt):
-        if not self.paused:
-            self.sim.step(BASE_SPEED_KMPS * self.speed * min(dt, 0.1) / AVG_SPEED_KMH)
+        if self.paused:
+            return
+        for slice_s in slices(dt, max_catchup=0.1):
+            self.sim.step(sim_hours(slice_s, self.speed))
 
     def run(self):
         running = True

@@ -9,8 +9,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from algorithms import ALGORITHMS
-from environment.city import CityGraph
+from aegis.core.algorithms import ALGORITHMS
+from aegis.core.environment.city import CityGraph
 
 AVG_SPEED_KMH = 60
 
@@ -26,10 +26,10 @@ def compare(graph, start, goal):
 
 def analyze():
     """Run the benchmark and every scenario headlessly; write CSVs and charts."""
-    from simulation.recorder import (BENCH_FIELDS, RESULTS_DIR, SIM_FIELDS, load_csv,
+    from aegis.core.simulation.recorder import (BENCH_FIELDS, RESULTS_DIR, SIM_FIELDS, load_csv,
                                      save_csv)
-    from simulation.runner import benchmark, run_all, scenario_rows
-    from visualization.charts import make_all
+    from aegis.core.simulation.runner import benchmark, run_all, scenario_rows
+    from aegis.charts import make_all
 
     save_csv(benchmark(), RESULTS_DIR / "algorithm_benchmark.csv", BENCH_FIELDS)
     sims = run_all()
@@ -47,8 +47,8 @@ def analyze():
 
 def fairness():
     """Response time per city for one standard incident, compared with distance from base."""
-    from simulation.fairness import FIELDS, fairness_rows, summary
-    from simulation.recorder import RESULTS_DIR, save_csv
+    from aegis.core.simulation.fairness import FIELDS, fairness_rows, summary
+    from aegis.core.simulation.recorder import RESULTS_DIR, save_csv
     rows = fairness_rows()
     save_csv(rows, RESULTS_DIR / "fairness.csv", FIELDS)
     print(f"{'City':<13}{'Km':>6}{'Hours':>8}{'x median':>10}  flag")
@@ -64,7 +64,7 @@ def fairness():
 
 def explain_rules(graph, kind, city, people):
     """Why each knowledge rule would or would not fire for this incident (backward chaining)."""
-    from ai.logic import explain, incident_facts
+    from aegis.core.ai.logic import explain, incident_facts
     if city not in graph.coords:
         raise SystemExit(f"unknown city: {city}")
     facts = incident_facts(kind, graph.tags[city], people)
@@ -81,8 +81,8 @@ def explain_rules(graph, kind, city, people):
 def interpret(graph, text, use_llm):
     """Show how the prompt engine reads a scenario, as structured JSON."""
     import json
-    from prompt_engine.parser import describe
-    from prompt_engine.scenario_generator import build_scenario
+    from aegis.core.prompt_engine.parser import describe
+    from aegis.core.prompt_engine.scenario_generator import build_scenario
     scenario = build_scenario(text, graph, use_llm=use_llm)
     print(json.dumps({"description": scenario["description"], "events": scenario["events"]}, indent=2))
     for event in scenario["events"]:
@@ -118,7 +118,7 @@ def main():
     elif args.compare:
         compare(graph, *args.compare)
     else:
-        from visualization.pygame_ui import App
+        from aegis.desktop.pygame_ui import App
         App(graph, use_llm=args.llm).run()
 
 

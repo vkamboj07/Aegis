@@ -5,8 +5,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from simulation.recorder import BENCH_FIELDS, SIM_FIELDS, load_csv, save_csv
-from simulation.runner import benchmark, run_all, run_scenario, scenario_rows
+from aegis.core.simulation.recorder import BENCH_FIELDS, SIM_FIELDS, load_csv, save_csv
+from aegis.core.simulation.runner import benchmark, run_all, run_scenario, scenario_rows
 
 try:
     import matplotlib  # noqa: F401
@@ -74,7 +74,7 @@ class BenchmarkTests(unittest.TestCase):
 @unittest.skipIf(matplotlib is None, "matplotlib not installed")
 class ChartTests(unittest.TestCase):
     def test_make_all_writes_four_pngs_from_csv_rows(self):
-        from visualization.charts import make_all
+        from aegis.charts import make_all
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
             save_csv(benchmark(), tmp / "b.csv", BENCH_FIELDS)

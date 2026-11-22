@@ -11,7 +11,7 @@ The simulation never depends on this module.
 import json
 import re
 
-from prompt_engine.parser import INCIDENT_TYPES, ParseResult, validate_events
+from aegis.core.prompt_engine.parser import INCIDENT_TYPES, ParseResult, validate_events
 
 MODEL = "claude-opus-5-5"
 

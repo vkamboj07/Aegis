@@ -2,10 +2,10 @@
 import itertools
 import json
 
-from algorithms import ALGORITHMS
-from environment.city import CityGraph
-from environment.events import DEFAULT_SCENARIOS
-from simulation.engine import Simulation
+from aegis.core.algorithms import ALGORITHMS
+from aegis.core.environment.city import CityGraph
+from aegis.core.environment.events import DEFAULT_SCENARIOS
+from aegis.core.simulation.engine import Simulation
 
 
 def scenario_names(path=DEFAULT_SCENARIOS):
